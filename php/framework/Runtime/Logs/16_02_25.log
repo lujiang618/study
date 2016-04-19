@@ -1,0 +1,86 @@
+[ 2016-02-25T16:48:49+08:00 ] 127.0.0.1 /test/php/framework/
+INFO: [ app_begin ] --START--
+INFO: Run ReadHtmlCache Behavior [ RunTime:0.000245s ]
+INFO: [ app_begin ] --END-- [ RunTime:0.000446s ]
+
+[ 2016-02-25T16:55:26+08:00 ] 127.0.0.1 /test/php/framework/
+INFO: [ app_begin ] --START--
+INFO: Run ReadHtmlCache Behavior [ RunTime:0.000463s ]
+INFO: [ app_begin ] --END-- [ RunTime:0.000522s ]
+INFO: [ view_template ] --START--
+INFO: Run LocationTemplate Behavior [ RunTime:-0.000306s ]
+INFO: [ view_template ] --END-- [ RunTime:0.000389s ]
+INFO: [ view_parse ] --START--
+INFO: Run ParseTemplate Behavior [ RunTime:-0.000734s ]
+INFO: [ view_parse ] --END-- [ RunTime:0.005512s ]
+INFO: [ view_filter ] --START--
+INFO: Run ContentReplace Behavior [ RunTime:-0.006315s ]
+INFO: Run TokenBuild Behavior [ RunTime:-0.006796s ]
+INFO: Run WriteHtmlCache Behavior [ RunTime:-0.007253s ]
+INFO: Run ShowRuntime Behavior [ RunTime:-0.007668s ]
+INFO: [ view_filter ] --END-- [ RunTime:0.003208s ]
+INFO: [ view_end ] --START--
+INFO: Run ShowPageTrace Behavior [ RunTime:-0.009625s ]
+INFO: [ view_end ] --END-- [ RunTime:0.001061s ]
+
+[ 2016-02-25T17:03:43+08:00 ] ERR: (ThinkException) Unknown database 'thinkphp31'
+[ 2016-02-25T17:03:43+08:00 ] 127.0.0.1 /test/php/framework/
+INFO: [ app_begin ] --START--
+INFO: Run ReadHtmlCache Behavior [ RunTime:0.000450s ]
+INFO: [ app_begin ] --END-- [ RunTime:0.000501s ]
+NOTIC: [8] Undefined index: class /www/ThinkPHP/Lib/Core/ThinkException.class.php 第 63 行.
+NOTIC: [8] Undefined index: type /www/ThinkPHP/Lib/Core/ThinkException.class.php 第 63 行.
+NOTIC: [8] Undefined index: file /www/ThinkPHP/Lib/Core/ThinkException.class.php 第 62 行.
+NOTIC: [8] Undefined index: line /www/ThinkPHP/Lib/Core/ThinkException.class.php 第 62 行.
+NOTIC: [4096] Object of class IndexAction could not be converted to string /www/ThinkPHP/Lib/Core/ThinkException.class.php 第 64 行.
+NOTIC: [8] Undefined index: class /www/ThinkPHP/Lib/Core/ThinkException.class.php 第 63 行.
+NOTIC: [8] Undefined index: type /www/ThinkPHP/Lib/Core/ThinkException.class.php 第 63 行.
+NOTIC: [8] Undefined index: class /www/ThinkPHP/Lib/Core/ThinkException.class.php 第 63 行.
+NOTIC: [8] Undefined index: type /www/ThinkPHP/Lib/Core/ThinkException.class.php 第 63 行.
+
+[ 2016-02-25T17:04:58+08:00 ] 127.0.0.1 /test/php/framework/
+INFO: [ app_begin ] --START--
+INFO: Run ReadHtmlCache Behavior [ RunTime:0.000501s ]
+INFO: [ app_begin ] --END-- [ RunTime:0.000640s ]
+SQL: SHOW COLUMNS FROM `think_data` [ RunTime:0.001182s ]
+SQL: SELECT * FROM `think_data`  [ RunTime:0.000157s ]
+INFO: [ view_template ] --START--
+INFO: Run LocationTemplate Behavior [ RunTime:-0.011097s ]
+INFO: [ view_template ] --END-- [ RunTime:0.000513s ]
+INFO: [ view_parse ] --START--
+NOTIC: [8] Undefined variable: name /www/test/php/framework/Runtime/Cache/4c3be6bdd3ccc383e7991514d58c705f.php 第 4 行.
+NOTIC: [8] Undefined variable: name /www/test/php/framework/Runtime/Cache/4c3be6bdd3ccc383e7991514d58c705f.php 第 7 行.
+INFO: Run ParseTemplate Behavior [ RunTime:-0.011687s ]
+INFO: [ view_parse ] --END-- [ RunTime:0.007053s ]
+INFO: [ view_filter ] --START--
+INFO: Run ContentReplace Behavior [ RunTime:-0.018723s ]
+INFO: Run TokenBuild Behavior [ RunTime:-0.019227s ]
+INFO: Run WriteHtmlCache Behavior [ RunTime:-0.019630s ]
+INFO: Run ShowRuntime Behavior [ RunTime:-0.019951s ]
+INFO: [ view_filter ] --END-- [ RunTime:0.001670s ]
+INFO: [ view_end ] --START--
+INFO: Run ShowPageTrace Behavior [ RunTime:-0.020434s ]
+INFO: [ view_end ] --END-- [ RunTime:0.000562s ]
+
+[ 2016-02-25T17:40:17+08:00 ] 127.0.0.1 /test/php/framework/
+INFO: [ app_begin ] --START--
+INFO: Run ReadHtmlCache Behavior [ RunTime:0.000647s ]
+INFO: [ app_begin ] --END-- [ RunTime:0.000723s ]
+SQL: SHOW COLUMNS FROM `think_data` [ RunTime:0.001191s ]
+SQL: SELECT * FROM `think_data`  [ RunTime:0.000196s ]
+INFO: [ view_template ] --START--
+INFO: Run LocationTemplate Behavior [ RunTime:-0.013583s ]
+INFO: [ view_template ] --END-- [ RunTime:0.000621s ]
+INFO: [ view_parse ] --START--
+INFO: Run ParseTemplate Behavior [ RunTime:-0.014270s ]
+INFO: [ view_parse ] --END-- [ RunTime:0.006920s ]
+INFO: [ view_filter ] --START--
+INFO: Run ContentReplace Behavior [ RunTime:-0.021180s ]
+INFO: Run TokenBuild Behavior [ RunTime:-0.021588s ]
+INFO: Run WriteHtmlCache Behavior [ RunTime:-0.022028s ]
+INFO: Run ShowRuntime Behavior [ RunTime:-0.022453s ]
+INFO: [ view_filter ] --END-- [ RunTime:0.001754s ]
+INFO: [ view_end ] --START--
+INFO: Run ShowPageTrace Behavior [ RunTime:-0.022975s ]
+INFO: [ view_end ] --END-- [ RunTime:0.000568s ]
+

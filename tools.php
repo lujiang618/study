@@ -11,15 +11,13 @@ if( $_POST )
     case 'date':
         $data = $method('Y-m-d H:i:s',$content);
         break;
-    case 'json_decode':
-        $data = $method($content,true);
-        break;
     default:
         $data = $method($content);
         break;
     }
 }
 ?>
+
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <style>
@@ -29,9 +27,8 @@ th{font-weight:bold;background:#ccc;}
 textarea{width:98%;height:300px;}
 </style>
 </head>
-<form action="" method="post">
+<form action="tools.php" method="post">
   <table>
-    <col width="40%" />
     <tr>
       <td>
         <select name="type">
@@ -47,13 +44,15 @@ textarea{width:98%;height:300px;}
         <input type="submit" name="submit" value="提交" />
         <input type="reset" name="reset" value="重置" />
       </td>
-      <td rowspan="2">
-        <?php echo '<pre/>';var_export($data); ?>
-      </td>
     </tr>
     <tr>
       <td>
       <textarea name="content" value='' ></textarea>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <?php echo '<pre/>';var_export($data); ?>
       </td>
     </tr>
   </table>

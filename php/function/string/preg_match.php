@@ -8,3 +8,17 @@ if(!$status)
 {
 echo '111';
 }
+
+/**
+ * 测试下正则的长度限制
+ *
+ *
+ */
+
+$str = '11111';
+
+if( !preg_match('/^([0-9]){6}$/i',$str) ){
+    echo 'error';
+}else{
+    echo 'right';
+}

@@ -11,6 +11,9 @@ if( $_POST )
     case 'date':
         $data = $method('Y-m-d H:i:s',$content);
         break;
+    case 'json_decode':
+        $data = $method($content,true);
+        break;
     default:
         $data = $method($content);
         break;
@@ -47,12 +50,25 @@ textarea{width:98%;height:300px;}
     </tr>
     <tr>
       <td>
+        <div style="word-wrap: break-word;word-break:break-all;width:70%;heigh:500px;border:1px solid #0f0;padding:5px 15px;" >
       <textarea name="content" value='' ></textarea>
+        </div>
       </td>
     </tr>
     <tr>
       <td>
-        <?php echo '<pre/>';var_export($data); ?>
+        <div style="word-wrap: break-word;word-break:break-all;width:70%;heigh:500px;border:1px solid #f00;padding:5px 15px;" >
+        <textarea name="result"><?php
+            if( $data ) {
+                if( is_array($data) ){
+                    var_export($data);
+                }else{
+                    echo $data;
+                }
+            }
+        ?>
+        </textarea>
+        </div>
       </td>
     </tr>
   </table>

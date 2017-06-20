@@ -1,0 +1,252 @@
+From 6e7f21c8ff0c69c1ab82a95dd42b82f4fa8fdda6 Mon Sep 17 00:00:00 2001
+From: lujiang <531432594@qq.com>
+Date: Sun, 7 May 2017 16:32:42 +0800
+Subject: [PATCH] =?UTF-8?q?=E3=80=90=E6=96=B0=E5=A2=9E=E3=80=91=E5=9B=BE?=
+ =?UTF-8?q?=E7=89=87=E5=A4=84=E7=90=86?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ app/b2c/controller/wap/img.php    | 88 +++++++++++++++++++++++++++++++++++++++
+ app/b2c/wap.xml                   |  5 +++
+ app/base/lib/router.php           |  1 +
+ app/wap/lib/router.php            | 24 ++++++++++-
+ app/wap/lib/theme/tmpl/dbsave.php |  1 +
+ app/wap/lib/theme/tmpl/fssave.php |  1 +
+ config/mapper.php                 |  2 +-
+ 7 files changed, 119 insertions(+), 3 deletions(-)
+ create mode 100644 app/b2c/controller/wap/img.php
+
+diff --git a/app/b2c/controller/wap/img.php b/app/b2c/controller/wap/img.php
+new file mode 100644
+index 0000000..98295ac
+--- /dev/null
++++ b/app/b2c/controller/wap/img.php
+@@ -0,0 +1,88 @@
++<?php
++/**
++ * ShopEx licence
++ *
++ * @copyright  Copyright (c) 2005-2013 ShopEx Technologies Inc. (http://www.shopex.cn)
++ * @license  http://ecos.shopex.cn/ ShopEx License */
++
++class b2c_ctl_wap_img extends wap_frontpage{
++
++    function __construct($app){
++        parent::__construct($app);
++        $shopname = app::get('wap')->getConf('wap.shopname');
++        $this->shopname = $shopname;
++    }
++
++    public function index($image_id,$tag=null,$size=null,$type='jpg') {
++        ## 根据type来设置hearder
++        $image_type = $this->getHearder($type);
++        header('content-type:image/'.$image_type);
++       
++        base_kvstore::instance('cache/expires')->fetch($imageKey, $image_blob);
++        if($image_blob){
++            echo bin2hex($image_blob);
++        }
++
++        $image_info = app::get('image')->model('image')->getRow('*',array('image_id'=>$image_id));
++        $filename = $image_info['url']; 
++        $size = $this->formatSize($size);  
++        logger::log('size:'.$size);     
++        $new_size = $this->getSize($size,$tag,$filename);
++
++        $imagick = new Imagick(realpath($filename));
++        $imagick->thumbnailImage($new_size['width'], $new_size['height'], true, true);
++        echo $new_image = $imagick->getImageBlob();
++
++        $imageKey = $image_id.$tag.$size.$type;
++        base_kvstore::instance('cache/expires')->store($imageKey, $new_image);
++    }
++
++    ## 根据type来生成header内的图片格式
++    private function getHearder($type){
++        $image_type = '';
++        switch ($type) {
++            case 'png':
++                $image_type = 'png';
++                break;
++            case 'jpg':
++            default:
++                $image_type = 'jpeg';
++                break;
++        }
++        return $image_type;
++    }
++
++    ## 处理图片的新尺寸
++    private function getSize($size,$tag,$filename){
++        list($width, $height)=getimagesize($filename);
++
++        ## 如果没有传入图片大小返回原图尺寸
++        if( empty($tag) || empty($size)){
++            $data['width'] = $width;
++            $data['height'] = $height;
++            return $data;
++        }
++
++        $tag = strtolower($tag);
++        if($tag == 'w'){
++            $per =  $size/$width;
++        }else{
++            $per =  $size/$height;
++        }
++        $data['width']=$width*$per;
++        $data['height']=$height*$per;
++        return $data;
++    }
++
++    ## 对图片尺寸进行格式化
++    private function formatSize($size){
++        $new_size = round($size/100,0)*100;        
++
++        if($new_size==0){
++            $new_size = $size;
++        }
++
++        return $new_size;
++    }
++}
++
+diff --git a/app/b2c/wap.xml b/app/b2c/wap.xml
+index bcc5726..9d0bbab 100644
+--- a/app/b2c/wap.xml
++++ b/app/b2c/wap.xml
+@@ -23,6 +23,11 @@
+         <title>活动页</title>
+         <disable>false</disable>
+     </module>
++    <module id='b2c' controller='wap_img' >
++        <name>img</name>
++        <title>图片</title>
++        <disable>false</disable>
++    </module>
+     
+     <module id='b2c' controller='wap_brand' >
+         <name>brand</name>
+diff --git a/app/base/lib/router.php b/app/base/lib/router.php
+index fdaf9e6..437a767 100644
+--- a/app/base/lib/router.php
++++ b/app/base/lib/router.php
+@@ -33,6 +33,7 @@ class base_router implements base_interface_router{
+         $query_args = explode('/',$query);
+         $controller = array_shift($query_args);
+         $action = array_shift($query_args);
++        logger::log(var_export($query_args,true));
+         if($controller == 'index.php'){
+             $controller = '';
+         }
+diff --git a/app/wap/lib/router.php b/app/wap/lib/router.php
+index 53b276e..da23c58 100644
+--- a/app/wap/lib/router.php
++++ b/app/wap/lib/router.php
+@@ -127,6 +127,20 @@ class wap_router implements base_interface_router
+         return $args;
+     }//End Function
+ 
++    public function image_decode_args($args){
++        $temp = explode('-', $args[0]);
++        $arr[] = $temp[0];
++        if(count($temp) == 3){
++        $arr[] = substr($temp[1],0,1);
++        $arr[] = substr($temp[1],1);
++        $arr[] = $temp[2];
++        }else{
++            $arr[] = null;
++            $arr[] = null;
++            $arr[] = $temp[1];
++        }
++        return $arr;
++    }
+     /*
+      * 后缀名
+      * @var void
+@@ -275,9 +289,12 @@ class wap_router implements base_interface_router
+             $allow_name = $query_info['allow'];             //许可名
+         // echo "<pre>";print_r($this->sitemap);exit;
+             if(!array_key_exists($allow_name, $this->sitemap)){
++                
+                 $this->http_status(404);   //404页面
+             }
+-            if(app::get('site')->getConf('base.check_uri_expanded_name')=='true' && $this->get_uri_expended_name($allow_name)!=$query_info['extension']){
++            $expended = array('.png','.jpg','.webp');
++            $expended[] = $this->get_uri_expended_name($allow_name);
++            if(app::get('site')->getConf('base.check_uri_expanded_name')=='true' && !in_array($query_info['extension'],$expended) ){
+                 $this->http_status(404);   //404页面
+             }
+             $separator = ($query_info['separator']) ? $query_info['separator'] : $this->get_separator();    //分隔符
+@@ -288,6 +305,7 @@ class wap_router implements base_interface_router
+             if(is_object($service) && $service->enable()){
+                 $service->dispatch($realquery, $allow_name, $separator);
+             }else{
++                if($allow_name == 'img') $realquery = $realquery.'-'.substr($query_info['extension'],1);
+                 $this->default_dispatch($realquery, $allow_name, $separator);
+             }
+             $page['html'] = join("\n", $this->_response->get_bodys());
+@@ -369,7 +387,7 @@ class wap_router implements base_interface_router
+         $query_args = explode($separator, $query);
+         $part = array_shift($query_args);
+         if(count($query_args)){
+-            if(is_numeric($query_args[0])){
++            if(is_numeric($query_args[0]) || $route_value[1]=='wap_img'){
+                 $action = 'index';
+             }else{
+                 $action = array_shift($query_args);
+@@ -377,12 +395,14 @@ class wap_router implements base_interface_router
+         }else{
+             $action = 'index';
+         }
++        if($route_value[1]=='wap_img') $query_args = $this->image_decode_args($query_args);
+         $query_args = $this->decode_args($query_args);
+         $this->_request->set_app_name($route_value[0]); //设置app信息
+         $this->_request->set_ctl_name($route_value[1]); //设置ctl信息
+         $this->_request->set_act_name($action);         //设置act信息
+         $this->_request->set_params($query_args);       //设置参数信息
+         $controller = app::get($route_value[0])->controller($route_value[1]);
++        logger::info('request:'.var_export($this->_request,1));
+         if(method_exists($controller, $action)){
+             try{
+                 call_user_func_array(array($controller, $action), (array)$query_args);
+diff --git a/app/wap/lib/theme/tmpl/dbsave.php b/app/wap/lib/theme/tmpl/dbsave.php
+index 272ebca..16165ca 100644
+--- a/app/wap/lib/theme/tmpl/dbsave.php
++++ b/app/wap/lib/theme/tmpl/dbsave.php
+@@ -310,6 +310,7 @@ class wap_theme_tmpl_dbsave
+             'splash'=>app::get('wap')->_('信息提示页'),
+             'default'=>app::get('wap')->_('默认页'),
+             'activity'=>app::get('wap')->_('活动页'),
++            'img'=>app::get('wap')->_('图片'),
+         );
+         foreach( kernel::servicelist("wap.site_theme_tmpl") as $object ) {
+             if( method_exists($object,'__get_tmpl_list') ) {
+diff --git a/app/wap/lib/theme/tmpl/fssave.php b/app/wap/lib/theme/tmpl/fssave.php
+index c0b2095..84d4f33 100644
+--- a/app/wap/lib/theme/tmpl/fssave.php
++++ b/app/wap/lib/theme/tmpl/fssave.php
+@@ -295,6 +295,7 @@ class wap_theme_tmpl_fssave
+             'splash'=>app::get('wap')->_('信息提示页'),
+             'default'=>app::get('wap')->_('默认页'),
+             'activity'=>app::get('wap')->_('活动页'),
++            'img'=>app::get('wap')->_('图片'),
+         );
+         return $ctl;
+     }
+diff --git a/config/mapper.php b/config/mapper.php
+index a5a6ecb..9af90db 100755
+--- a/config/mapper.php
++++ b/config/mapper.php
+@@ -11,5 +11,5 @@ $urlmap = array(
+     '/setup' => array('app'=>'setup'),
+     '/shopadmin'=> array('app'=>'desktop'),
+     '/'=> array('app'=>'site'),
+-    '/wap'=> array('app'=>'wap'),
++    '/v1'=> array('app'=>'wap'),
+ );
+\ No newline at end of file
+-- 
+2.6.3
+

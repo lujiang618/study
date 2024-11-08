@@ -1,0 +1,57 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>weather</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="../main.css">
+	</head>
+	<body>
+
+		<script type="module" src="https://unpkg.com/kokomi.js/build/kokomi.umd.js"></script>
+		<script type="module" src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+		<script type="module" src="https://unpkg.com/gsap/dist/gsap.min.js"></script>
+		<script type="module" src="https://unpkg.com/postprocessing@6.33.2/build/postprocessing.js"></script>
+		<script type="module" src="/particle/rain.walk.js"></script>
+
+        <style>
+            body {
+                margin: 0;
+                overflow: hidden;
+            }
+
+            #sketch {
+                width: 100vw;
+                height: 100vh;
+                background: black;
+            }
+
+            .loading span {
+                animation: blur 1.5s calc(var(--i) / 5 * 1s) alternate infinite;
+            }
+
+            @keyframes blur {
+                to {
+                    filter: blur(2px);
+                }
+            }
+        </style>
+        <div id="sketch"></div>
+        <div
+            class="fixed z-5 top-0 left-0 loader-screen w-screen h-screen transition-all duration-300 bg-black"
+        >
+            <div class="absolute hv-center">
+                <div class="loading text-white text-3xl tracking-widest">
+                    <span style="--i: 0">L</span>
+                    <span style="--i: 1">O</span>
+                    <span style="--i: 2">A</span>
+                    <span style="--i: 3">D</span>
+                    <span style="--i: 4">I</span>
+                    <span style="--i: 5">N</span>
+                    <span style="--i: 6">G</span>
+                </div>
+            </div>
+        </div>
+	</body>
+</html>

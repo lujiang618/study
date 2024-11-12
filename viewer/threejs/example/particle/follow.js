@@ -51,22 +51,29 @@ const particleCount = 100;
 const particlesGeometry = new THREE.BufferGeometry();
 
 const historyLength = 20; // 历史轨迹长度
-const mouseHistory = new Array(historyLength).fill(new THREE.Vector3());
 let isMoving = false;
 let lastMouseMoveTime = 0;
 const moveTimeout = 100; // 多少毫秒没有移动就认为停止了
 
+// 鼠标位置变量
+const mouse = new THREE.Vector3();
+const mouseMatrix = new THREE.Matrix4();
+const mouseMatrixHistory = new Array(historyLength).fill(new THREE.Matrix4());
+
+// 捕获鼠标移动事件
+document.addEventListener("mousemove", onMouseMove, false);
+
 const particlesMaterial = new THREE.ShaderMaterial({
     uniforms: {
         size: { value: 24.0 },
-        mouseHistory: { value: mouseHistory },
+        mouseMatrixHistory: { value: mouseMatrixHistory },
         historyLength: { value: historyLength },
         time: { value: 0 },
-        isMoving: { value: 0.0 }, // 添加移动状态uniform
+        isMoving: { value: 0.0 },
     },
     vertexShader: `
         uniform float size;
-        uniform vec3 mouseHistory[20];
+        uniform mat4 mouseMatrixHistory[20];
         uniform int historyLength;
         uniform float time;
         uniform float isMoving;
@@ -78,42 +85,35 @@ const particlesMaterial = new THREE.ShaderMaterial({
             float particleIndex = position.x * float(historyLength - 1);
             int index = int(particleIndex);
 
-            vec3 pos1 = mouseHistory[index];
-            vec3 pos2 = mouseHistory[min(index + 1, historyLength - 1)];
+            vec3 pos1 = mouseMatrixHistory[index][3].xyz;
+            vec3 pos2 = mouseMatrixHistory[min(index + 1, historyLength - 1)][3].xyz;
             float t = fract(particleIndex);
             vec3 pos = mix(pos1, pos2, t);
 
-            // 计算到当前鼠标位置（第一个历史点）的距离
-            float distToMouse = distance(pos, mouseHistory[0]);
+            float distToMouse = distance(pos, mouseMatrixHistory[0][3].xyz);
 
-            // 当停止移动时，使用距离来收缩轨迹
             float shrinkFactor = mix(
-                exp(-distToMouse * 3.0), // 停止时的收缩效果
-                1.0,                      // 移动时保持原样
+                exp(-distToMouse * 3.0),
+                1.0,
                 isMoving
             );
 
-            // 应用收缩效果
-            pos = mix(mouseHistory[0], pos, shrinkFactor);
+            pos = mix(mouseMatrixHistory[0][3].xyz, pos, shrinkFactor);
 
-            // 波动效果
             float wave = sin(time * 2.0 + particleIndex * 0.5) * 0.02 * shrinkFactor;
             pos.x += wave;
             pos.y += wave;
 
-            // 渐变效果
             float fadeEffect = 1.0 - float(index) / float(historyLength - 1);
-            fadeEffect *= shrinkFactor; // 应用收缩效果到透明度
+            fadeEffect *= shrinkFactor;
             vAlpha = fadeEffect * 0.8;
 
-            // 颜色渐变
             vColor = mix(
                 vec3(1.0, 0.5, 0.0),
                 vec3(0.0, 0.5, 1.0),
                 fadeEffect
             );
 
-            // gl_Position = vec4(pos, 1.0);
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
             gl_Position = projectionMatrix * mvPosition;
             gl_PointSize = size * (0.3 + fadeEffect * 0.7);
@@ -127,7 +127,6 @@ const particlesMaterial = new THREE.ShaderMaterial({
             vec2 center = gl_PointCoord - vec2(0.5);
             float dist = length(center);
 
-            // 创建柔和的粒子边缘
             float alpha = smoothstep(0.5, 0.2, dist) * vAlpha;
 
             gl_FragColor = vec4(1.0,0,0, alpha);
@@ -155,33 +154,24 @@ particlesGeometry.setAttribute(
 const particles = new THREE.Points(particlesGeometry, particlesMaterial);
 scene.add(particles);
 
-
-// 鼠标位置变量
-const mouse = new THREE.Vector3();
-const mouseWorld = new THREE.Vector3();
-const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-
-// 捕获鼠标移动事件
-document.addEventListener("mousemove", onMouseMove, false);
-
 function onMouseMove(event) {
-    // 计算新的鼠标位置
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
     mouse.z = 1;
 
-    // console.log(111,mouse)
-    mouse.unproject(camera)
-    // console.log(222,mouse)
-    // 只有当鼠标移动距离超过阈值时才更新历史记录
-    const lastPos = mouseHistory[0];
-    const dist = mouse.distanceTo(lastPos);
-    if (dist > 0.01) { // 调整此值可以控制轨迹的平滑度
-        mouseHistory.pop();
-        mouseHistory.unshift(mouse.clone());
+    mouse.unproject(camera);
+
+    const newMatrix = new THREE.Matrix4();
+    newMatrix.setPosition(mouse);
+
+    const lastPos = mouseMatrixHistory[0].elements[12];
+    const dist = Math.abs(mouse.x - lastPos);
+
+    if (dist > 0.01) {
+        mouseMatrixHistory.pop();
+        mouseMatrixHistory.unshift(newMatrix.clone());
     }
 
-    // 更新移动状态
     isMoving = true;
     lastMouseMoveTime = Date.now();
 }
@@ -201,7 +191,7 @@ function animate() {
 
     // 更新uniforms
     particles.material.uniforms.time.value += 0.01;
-    particles.material.uniforms.mouseHistory.value = mouseHistory;
+    particles.material.uniforms.mouseMatrixHistory.value = mouseMatrixHistory;
     particles.material.uniforms.isMoving.value = isMoving ? 1.0 : 0.0;
 
     renderer.render(scene, camera);

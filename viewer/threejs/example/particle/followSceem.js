@@ -12,7 +12,10 @@ const camera = new THREE.PerspectiveCamera(
     0.1,
     1000
 );
+
+// 设置相机位置
 camera.position.z = 5;
+// camera.position.z = -10;
 
 const geometry = new THREE.BoxGeometry(1, 1, 1);
 const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
@@ -24,14 +27,14 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// 添加环境光
-const ambientLight = new THREE.AmbientLight(0x888888);
-scene.add(ambientLight);
+// // 添加环境光
+// const ambientLight = new THREE.AmbientLight(0xfff);
+// scene.add(ambientLight);
 
-// 添加点光源
-const pointLight = new THREE.PointLight(0xffffff, 1, 100);
-pointLight.position.set(10, 10, 10);
-scene.add(pointLight);
+// // 添加点光源
+// const pointLight = new THREE.PointLight(0xffffff, 1, 100);
+// pointLight.position.set(10, 10, 10);
+// scene.add(pointLight);
 
 let controls, stats;
 
@@ -39,7 +42,7 @@ controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 10, 0);
 controls.minDistance = 25;
 controls.maxDistance = 15000;
-controls.maxPolarAngle = Math.PI / 1.0;
+controls.maxPolarAngle = Math.PI / 1.7;
 controls.autoRotate = false;
 controls.autoRotateSpeed = -1;
 controls.update();
@@ -113,9 +116,7 @@ const particlesMaterial = new THREE.ShaderMaterial({
                 fadeEffect
             );
 
-            // gl_Position = vec4(pos, 1.0);
-            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-            gl_Position = projectionMatrix * mvPosition;
+            gl_Position = vec4(pos, 1.0);
             gl_PointSize = size * (0.3 + fadeEffect * 0.7);
         }
     `,
@@ -156,6 +157,7 @@ const particles = new THREE.Points(particlesGeometry, particlesMaterial);
 scene.add(particles);
 
 
+
 // 鼠标位置变量
 const mouse = new THREE.Vector3();
 const mouseWorld = new THREE.Vector3();
@@ -168,11 +170,8 @@ function onMouseMove(event) {
     // 计算新的鼠标位置
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-    mouse.z = 1;
+    mouse.z = 0;
 
-    // console.log(111,mouse)
-    mouse.unproject(camera)
-    // console.log(222,mouse)
     // 只有当鼠标移动距离超过阈值时才更新历史记录
     const lastPos = mouseHistory[0];
     const dist = mouse.distanceTo(lastPos);
@@ -190,20 +189,20 @@ function onMouseMove(event) {
 function animate() {
     requestAnimationFrame(animate);
 
-    cube.rotation.x += 0.10;
-    cube.rotation.y += 0.10;
-
-    console.log(camera)
     // 检查是否停止移动
     if (isMoving && Date.now() - lastMouseMoveTime > moveTimeout) {
         isMoving = false;
     }
+
+    cube.rotation.x += 0.10;
+    cube.rotation.y += 0.10;
 
     // 更新uniforms
     particles.material.uniforms.time.value += 0.01;
     particles.material.uniforms.mouseHistory.value = mouseHistory;
     particles.material.uniforms.isMoving.value = isMoving ? 1.0 : 0.0;
 
+    console.log(camera)
     renderer.render(scene, camera);
     stats.update();
     controls.update();

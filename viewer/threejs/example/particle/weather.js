@@ -1,12 +1,17 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import Stats from 'three/addons/libs/stats.module.js';
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import Stats from "three/addons/libs/stats.module.js";
 
 // 创建场景
 const scene = new THREE.Scene();
 
 // 创建相机
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+);
 camera.position.z = 50;
 
 // 创建渲染器
@@ -19,7 +24,7 @@ const ambientLight = new THREE.AmbientLight(0x888888);
 scene.add(ambientLight);
 
 // 添加点光源
-const pointLight = new THREE.PointLight(0xFFFFFF, 1, 100);
+const pointLight = new THREE.PointLight(0xffffff, 1, 100);
 pointLight.position.set(10, 10, 10);
 scene.add(pointLight);
 
@@ -37,37 +42,59 @@ const createParticles = (count, size, color) => {
         positions[i * 3 + 2] = (Math.random() - 0.5) * 200;
 
         velocities[i * 3] = 0;
-        velocities[i * 3 + 1] = -Math.random() * 0.1;
+        velocities[i * 3 + 1] = -Math.random() * 0.8;
         velocities[i * 3 + 2] = 0;
     }
 
-    particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    particles.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
+    particles.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    particles.setAttribute(
+        "velocity",
+        new THREE.BufferAttribute(velocities, 3)
+    );
 
     const material = new THREE.PointsMaterial({
         color: color,
         size: size,
         transparent: true,
-        opacity: 0.8
+        opacity: 0.8,
     });
 
     return new THREE.Points(particles, material);
 };
 
-// 创建雨、雪和雾的粒子系统
-const rainParticles = createParticles(1000, 0.3, 0xff0000);
-scene.add(rainParticles);
+const geometry = new THREE.BoxGeometry(1, 1, 1);
+const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+const cube = new THREE.Mesh(geometry, material);
+scene.add(cube);
 
-const snowParticles = createParticles(1000, 0.2, 0x0000FF);
+// 创建雨、雪和雾的粒子系统
+// const rainParticles = createParticles(1000, 0.3, 0xff0000);
+// scene.add(rainParticles);
+
+const snowParticles = createParticles(1000, 0.2, 0x0000ff);
 scene.add(snowParticles);
 
-const fogParticles = createParticles(500, 0.2, 0x00ff00);
-scene.add(fogParticles);
+// const fogParticles = createParticles(500, 0.2, 0x00ff00);
+// scene.add(fogParticles);
+
+const followMatrix = new THREE.Matrix4(); // 用于存储跟随矩阵
+
+function updateFollowMatrix(camera, offset) {
+    // 重置矩阵为单位矩阵
+    followMatrix.identity();
+
+    // 从相机的世界矩阵复制位置和旋转信息
+    followMatrix.copy(camera.matrixWorld);
+
+    // 将偏移向量转换到世界空间并添加到矩阵
+    const offsetWorld = offset.clone().applyMatrix4(camera.matrixWorld);
+    followMatrix.setPosition(offsetWorld);
+}
 
 // 更新粒子系统
-const updateParticles = (particles) => {
-    const positions = particles.geometry.attributes.position.array;
-    const velocities = particles.geometry.attributes.velocity.array;
+const updateParticles = (particleSystem, matrix) => {
+    const positions = particleSystem.geometry.attributes.position.array;
+    const velocities = particleSystem.geometry.attributes.velocity.array;
 
     for (let i = 0; i < positions.length / 3; i++) {
         positions[i * 3 + 1] += velocities[i * 3 + 1];
@@ -77,29 +104,35 @@ const updateParticles = (particles) => {
         }
     }
 
-    particles.geometry.attributes.position.needsUpdate = true;
+    particleSystem.geometry.attributes.position.needsUpdate = true;
+
+    // 更新跟随矩阵
+    const offset = new THREE.Vector3(0, 0, 0);
+    updateFollowMatrix(camera, offset);
+
+    particleSystem.matrix.copy(followMatrix);
+    particleSystem.matrixAutoUpdate = false;
 };
 
-
-controls = new OrbitControls( camera, renderer.domElement );
-controls.target.set( 0, 10, 0 );
-controls.minDistance = 25;
+controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 10, 0);
+controls.minDistance = 1;
 controls.maxDistance = 15000;
 controls.maxPolarAngle = Math.PI / 1.7;
 controls.autoRotate = false;
-controls.autoRotateSpeed = - 1;
+controls.autoRotateSpeed = -1;
 controls.update();
 
 stats = new Stats();
-document.body.appendChild( stats.dom );
+document.body.appendChild(stats.dom);
 
 const animate = () => {
     controls.update();
     requestAnimationFrame(animate);
 
-    updateParticles(rainParticles);
-    updateParticles(snowParticles);
-    updateParticles(fogParticles);
+    // updateParticles(rainParticles, camera.matrixWorld);
+    updateParticles(snowParticles, camera.matrixWorld);
+    // updateParticles(fogParticles, camera.matrixWorld);
 
     renderer.render(scene, camera);
 

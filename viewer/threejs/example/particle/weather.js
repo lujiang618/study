@@ -52,11 +52,26 @@ const createParticles = (count, size, color) => {
         new THREE.BufferAttribute(velocities, 3)
     );
 
-    const material = new THREE.PointsMaterial({
-        color: color,
-        size: size,
-        transparent: true,
-        opacity: 0.8,
+    const material = new THREE.ShaderMaterial({
+        uniforms: {
+            followMatrix: { value: new THREE.Matrix4() }, // Uniform 用于传递跟随矩阵
+        },
+        vertexShader: `
+            uniform mat4 followMatrix;
+            void main() {
+                // 将顶点位置变换到跟随矩阵的空间
+                // vec4 transformedPosition = followMatrix * vec4(position, 1.0);
+
+                // 传递到 gl_Position
+                gl_Position = projectionMatrix * modelViewMatrix * followMatrix * vec4(position, 1.0);
+                gl_PointSize = 3.0;
+            }
+        `,
+        fragmentShader: `
+            void main() {
+                gl_FragColor = vec4(1.0, 1.0, 0.0, 0.6); // 简单白色粒子
+            }
+        `,
     });
 
     return new THREE.Points(particles, material);
@@ -71,7 +86,7 @@ scene.add(cube);
 // const rainParticles = createParticles(1000, 0.3, 0xff0000);
 // scene.add(rainParticles);
 
-const snowParticles = createParticles(1000, 0.2, 0x0000ff);
+const snowParticles = createParticles(10000, 0.2, 0x0000ff);
 scene.add(snowParticles);
 
 // const fogParticles = createParticles(500, 0.2, 0x00ff00);
@@ -81,14 +96,14 @@ const followMatrix = new THREE.Matrix4(); // 用于存储跟随矩阵
 
 function updateFollowMatrix(camera, offset) {
     // 重置矩阵为单位矩阵
-    followMatrix.identity();
+    // followMatrix.identity();
 
     // 从相机的世界矩阵复制位置和旋转信息
-    followMatrix.copy(camera.matrixWorld);
+    // followMatrix.copy(camera.matrixWorld);
 
     // 将偏移向量转换到世界空间并添加到矩阵
     const offsetWorld = offset.clone().applyMatrix4(camera.matrixWorld);
-    followMatrix.setPosition(offsetWorld);
+    followMatrix.copy(camera.matrixWorld);
 }
 
 // 更新粒子系统
@@ -112,6 +127,8 @@ const updateParticles = (particleSystem, matrix) => {
 
     particleSystem.matrix.copy(followMatrix);
     particleSystem.matrixAutoUpdate = false;
+
+    console.log(particleSystem.matrix.elements,particleSystem.matrixWorld.elements);
 };
 
 controls = new OrbitControls(camera, renderer.domElement);

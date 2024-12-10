@@ -39,86 +39,6 @@ const stats = new Stats();
 const gui = new GUI();
 const clock = new THREE.Clock();
 
-const one = new THREE.Mesh();
-function example1() {
-    const vertex = /* GLSL */ `
-    uniform float uTime;
-    varying vec2 vUv;
-
-    void main() {
-      vUv = uv;
-
-      vec3 pos = position * sin(uTime);
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-    }
-  `;
-
-    const fragment = /* GLSL */ `
-  uniform float uTime;
-  varying vec2 vUv;
-
-  void main() {
-    gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);
-  }
-  `;
-
-    one.geometry = new THREE.SphereGeometry(1);
-
-    one.material = new THREE.ShaderMaterial({
-        uniforms: {
-            uTime: { value: 0 },
-        },
-        vertexShader: vertex,
-        fragmentShader: fragment,
-        wireframe: true,
-    });
-
-    one.position.set(-2.5, 0, 0);
-    scene.add(one);
-}
-
-example1();
-
-const two = new THREE.Mesh();
-function example2() {
-    const vertex = /* GLSL */ `
-    uniform float uTime;
-    varying vec2 vUv;
-
-    void main() {
-        vUv = uv;
-
-        vec3 pos = position;
-        pos.y += sin(pos.y * (sin(uTime) + 1.0) * 5.0);
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-    }
-    `;
-
-    const fragment = /* GLSL */ `
-    varying vec2 vUv;
-    uniform float uTime;
-
-    void main() {
-      gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);
-    }
-    `;
-
-    two.geometry = new THREE.SphereGeometry(1);
-
-    two.material = new THREE.ShaderMaterial({
-        uniforms: {
-            uTime: { value: 0 },
-        },
-        vertexShader: vertex,
-        fragmentShader: fragment,
-        wireframe: true,
-    });
-
-    two.position.set(0.0, 0, 0);
-    scene.add(two);
-}
-example2();
-
 const three = new THREE.Mesh();
 function example3() {
     const vertex = /* GLSL */ `
@@ -293,7 +213,7 @@ function example3() {
         // wireframe: true,
     });
 
-    three.position.set(3.0, 0, 0);
+    three.position.set(0.0, 0, 0);
     scene.add(three);
 }
 example3();
@@ -309,9 +229,6 @@ gui.add(three.material.uniforms.uFrequency, "value", 0, 20, 0.01).name(
 let time = 0;
 function animate() {
     time += 0.01;
-    one.material.uniforms.uTime.value = time;
-    two.material.uniforms.uTime.value = time;
-
     const delta = clock.getElapsedTime();
     three.material.uniforms.uTime.value = delta;
     three.rotation.y = time;

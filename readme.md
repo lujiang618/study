@@ -8,3 +8,5 @@ list
 - lua
 - python
 - viewer
+  - svg
+  - three.js

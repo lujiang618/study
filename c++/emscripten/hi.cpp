@@ -20,23 +20,23 @@ int mouseEventCallback(int eventType, const EmscriptenMouseEvent *mouseEvent, vo
 {
     if (eventType == EMSCRIPTEN_EVENT_MOUSEDOWN)
     {
-        std::cout << "Mouse button pressed at (" << mouseEvent->canvasX << ", " << mouseEvent->canvasY << ")\n";
+        std::cout << "Mouse button pressed at (" << mouseEvent->clientX << ", " << mouseEvent->clientY << ")\n";
     }
     else if (eventType == EMSCRIPTEN_EVENT_MOUSEUP)
     {
-        std::cout << "Mouse button released at (" << mouseEvent->canvasX << ", " << mouseEvent->canvasY << ")\n";
+        std::cout << "Mouse button released at (" << mouseEvent->clientX << ", " << mouseEvent->clientY << ")\n";
     }
     else if (eventType == EMSCRIPTEN_EVENT_DBLCLICK)
     {
-        std::cout << "Mouse double clicked at (" << mouseEvent->canvasX << ", " << mouseEvent->canvasY << ")\n";
+        std::cout << "Mouse double clicked at (" << mouseEvent->clientX << ", " << mouseEvent->clientY << ")\n";
     }
     else if (eventType == EMSCRIPTEN_EVENT_WHEEL)
     {
-        std::cout << "Mouse wheel scroll at (" << mouseEvent->canvasX << ", " << mouseEvent->canvasX << ")\n";
+        std::cout << "Mouse wheel scroll at (" << mouseEvent->clientX << ", " << mouseEvent->clientX << ")\n";
     }
     else
     {
-        std::cout << "Mouse button " << eventType << " at (" << mouseEvent->canvasX << ", " << mouseEvent->canvasY << ")\n";
+        std::cout << "Mouse button " << eventType << " at (" << mouseEvent->clientX << ", " << mouseEvent->clientY << ")\n";
     }
 
     return 0;

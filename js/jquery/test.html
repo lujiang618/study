@@ -1,0 +1,82 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>遮罩层</title>
+<style>
+body{
+    margin:0;
+    padding:0;
+}
+.mask {
+    position: absolute;
+    width:150px;
+    height:200px;
+    top: 0px;
+    filter: alpha(opacity=60);
+    background-color: #777;
+    z-index: 1002;
+    left: 0px;
+    opacity:0.5;
+    -moz-opacity:0.5;
+}
+#content {
+    margin:0;
+    padding:0;
+    height:300px;
+    width:150px;
+}
+
+#top {
+    height:200px;
+    width:150;
+    background:#F00;
+}
+#bottom {
+    height:100px;
+    width150px;
+    line-height:100px;
+    text-align:center;
+    background:#0F0;
+    color:#00F;
+}
+</style>
+<script src="./js/jquery-1.4.2.min.js" type="text/javascript"> </script>
+<script type="text/javascript">
+    $(function()
+    {
+      //兼容火狐、IE8
+      //显示遮罩层
+      function showMask(){
+        $("#mask").css("height",$("#top").height());
+        $("#mask").css("width",$("#top").width());
+        $("#mask").show();
+
+        $("#bottom").css({"background":"#0F0","color":"#00F"});
+      }
+      //隐藏遮罩层
+      function hideMask(){
+        $("#mask").hide();
+        $("#bottom").css({"background":"#000","color":"#FFF"});
+      }
+
+      $("#top,#mask").mouseover(
+          function(){
+            hideMask();
+          });
+      $("#top").mouseout(function(){
+          showMask();
+      });
+    })
+    </script>
+  </head>
+  <body>
+    <div id="content">
+    <div id="mask" class="mask"></div>
+    <div id="top">  </div>
+    <div id="bottom">
+    <a>点我显示遮罩层</a><br />
+    </div>
+    </div>
+  </body>
+</html>

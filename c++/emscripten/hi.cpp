@@ -6,11 +6,11 @@ int keyEventCallback(int eventType, const EmscriptenKeyboardEvent *keyEvent, voi
 {
     if (eventType == EMSCRIPTEN_EVENT_KEYDOWN)
     {
-        std::cout << "Key pressed: " << keyEvent->key << "\n";
+        std::cout << "Key pressed: " << keyEvent->key << " " << keyEvent->keyCode << " charCode: " << keyEvent->charCode << "\n";
     }
     else if (eventType == EMSCRIPTEN_EVENT_KEYUP)
     {
-        std::cout << "Key released: " << keyEvent->key << "\n";
+        std::cout << "Key released: " << keyEvent->key << " " << keyEvent->keyCode << " charCode: " << keyEvent->charCode << "\n";
     }
 
     return 0;
@@ -20,19 +20,24 @@ int mouseEventCallback(int eventType, const EmscriptenMouseEvent *mouseEvent, vo
 {
     if (eventType == EMSCRIPTEN_EVENT_MOUSEDOWN)
     {
-        std::cout << "Mouse button pressed at (" << mouseEvent->clientX << ", " << mouseEvent->clientY << ")\n";
+        std::cout << "Mouse button " << mouseEvent->button << " pressed at (" << mouseEvent->clientX << ", " << mouseEvent->clientY << ")\n";
     }
     else if (eventType == EMSCRIPTEN_EVENT_MOUSEUP)
     {
-        std::cout << "Mouse button released at (" << mouseEvent->clientX << ", " << mouseEvent->clientY << ")\n";
+        std::cout << "Mouse button " << mouseEvent->button << " released at (" << mouseEvent->clientX << ", " << mouseEvent->clientY << ")\n";
     }
     else if (eventType == EMSCRIPTEN_EVENT_DBLCLICK)
     {
-        std::cout << "Mouse double clicked at (" << mouseEvent->clientX << ", " << mouseEvent->clientY << ")\n";
+        std::cout << "Mouse double clicked " << mouseEvent->button << " at (" << mouseEvent->clientX << ", " << mouseEvent->clientY << ")\n";
     }
-    else if (eventType == EMSCRIPTEN_EVENT_WHEEL)
+    else if (eventType == EMSCRIPTEN_EVENT_MOUSEMOVE)
     {
-        std::cout << "Mouse wheel scroll at (" << mouseEvent->clientX << ", " << mouseEvent->clientX << ")\n";
+        std::cout << "Mouse moved to (" << mouseEvent->clientX << ", " << mouseEvent->clientY << ")\n";
+        std::cout << "Mouse moved to (" << mouseEvent->targetX << ", " << mouseEvent->targetY << ")\n";
+    }
+    else if (eventType == EMSCRIPTEN_EVENT_CLICK)
+    {
+        std::cout << "Mouse clicked " << mouseEvent->button << " at (" << mouseEvent->clientX << ", " << mouseEvent->clientY << ")\n";
     }
     else
     {
@@ -54,6 +59,7 @@ int mouseWheelCallback(int eventType, const EmscriptenWheelEvent *wheelEvent, vo
 
 int main()
 {
+    emscripten_set_canvas_element_size("#canvas", 1080, 720);
     // 绑定键盘事件
     emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_DOCUMENT, nullptr, 1, keyEventCallback);
     emscripten_set_keyup_callback(EMSCRIPTEN_EVENT_TARGET_DOCUMENT, nullptr, 1, keyEventCallback);

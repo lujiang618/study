@@ -43,6 +43,16 @@ const char* emscripten_result_to_string(EMSCRIPTEN_RESULT result)
     if (ret != EMSCRIPTEN_RESULT_SUCCESS) \
         printf("%s returned %s.\n", #x, emscripten_result_to_string(ret));
 
+template <typename... Args>
+void test_keyboard(std::tuple<Args...> args)
+{
+    const char* x;
+    int         y, z;
+    std::tie(x, y, z) = args;
+
+    std::cout << "keyboard event from tuple: " << x << " " << y << " " << " charCode: " << z << "\n";
+}
+
 int keyEventCallback(int eventType, const EmscriptenKeyboardEvent* keyEvent, void* userData)
 {
     if (eventType == EMSCRIPTEN_EVENT_KEYDOWN)
@@ -53,6 +63,12 @@ int keyEventCallback(int eventType, const EmscriptenKeyboardEvent* keyEvent, voi
     {
         std::cout << "Key released: " << keyEvent->key << " " << keyEvent->keyCode << " charCode: " << keyEvent->charCode << "\n";
     }
+
+    const char* key = keyEvent->key;
+
+    std::tuple<const char*, int, int> keyEventData = std::make_tuple(key, keyEvent->keyCode, keyEvent->charCode);
+
+    test_keyboard(keyEventData);
 
     return 0;
 }

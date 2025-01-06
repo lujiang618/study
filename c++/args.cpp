@@ -60,7 +60,7 @@ class CallbackManager
 public:
     // 修改后的addCallback，接受std::function类型的回调
     template <typename... Arguments>
-    int addCallback(std::function<void(Arguments...)> callback)
+    int addCallback(int eventType, std::function<void(Arguments...)> callback)
     {
         int callbackId = nextCallbackId_++;
 
@@ -73,36 +73,40 @@ public:
             }
         };
 
-        callbacks.emplace_back(callbackId, wrappedCallback);
+        callbacks[eventType].emplace_back(callbackId, wrappedCallback);
 
         return callbackId;
     }
 
     void printCallbacks()
     {
-        for (auto& callback : callbacks)
+        for (const auto& callback : callbacks)
         {
-            std::cout << "Callback ID: " << callback.first << std::endl;
+            std::cout << "Event Type: " << callback.first << std::endl;
+            for (const auto& cb : callback.second)
+            {
+                std::cout << "Callback ID: " << cb.first << std::endl;
+            }
         }
     }
 
     // 触发所有回调函数，传入参数包
     template <typename... Arguments>
-    void triggerCallbacks(Arguments&&... args)
+    void triggerCallbacks(int eventType, Arguments&&... args)
     {
         std::shared_ptr<IEventArg> event = std::make_shared<EventArg<Arguments...>>(std::forward<Arguments>(args)...);
 
         // 遍历所有回调函数并触发它们
-        for (auto& callback : callbacks)
+        for (const auto& callback : callbacks[eventType])
         {
             // 触发回调函数时传入参数
             callback.second(*event);
         }
     }
 
-    void removeCallback(int id)
+    void removeCallback(int eventType, int id)
     {
-        auto it = std::find_if(callbacks.begin(), callbacks.end(), [id](const auto& callback)
+        auto it = std::find_if(callbacks[eventType].begin(), callbacks[eventType].end(), [id](const auto& callback)
                                {
             std::cout << "callback id:" << callback.first << std::endl;
             std::cout << "remove id:" << id << std::endl;
@@ -110,16 +114,16 @@ public:
 
             return callback.first == id; });
 
-        if (it != callbacks.end())
+        if (it != callbacks[eventType].end())
         {
-            callbacks.erase(it);
+            callbacks[eventType].erase(it);
         }
     }
 
 private:
     int nextCallbackId_ = 0;
     // 存储所有的回调函数
-    std::vector<std::pair<int, EventCallback>> callbacks;
+    std::unordered_map<int, std::vector<std::pair<int, EventCallback>>> callbacks;
 };
 
 int main()
@@ -130,31 +134,31 @@ int main()
     auto c1  = std::function<void(int, double)>(callback1);
     auto c2  = std::function<void(const std::string)>(callback2);
     auto c3  = std::function<void(int, const std::string)>(callback3);
-    auto id1 = manager.addCallback(c1); // 注册接收一个整数的回调函数
-    auto id2 = manager.addCallback(c2); // 注册接收一个字符串的回调函数
-    auto id3 = manager.addCallback(c3); // 注册接收一个整数和一个字符串的回调函数
+    auto id1 = manager.addCallback(1, c1); // 注册接收一个整数的回调函数
+    auto id2 = manager.addCallback(2, c2); // 注册接收一个字符串的回调函数
+    auto id3 = manager.addCallback(3, c3); // 注册接收一个整数和一个字符串的回调函数
 
     std::cout << "===================================================" << std::endl;
     std::cout << "id1:" << id1 << std::endl;
     std::cout << "id2:" << id2 << std::endl;
     std::cout << "id3:" << id3 << std::endl;
 
-    manager.printCallbacks();
+    // manager.printCallbacks();
 
     std::cout << "===================================================" << std::endl;
     // 触发所有回调函数，传入不同数量和类型的参数
-    manager.triggerCallbacks(22, 32.0);                              // 触发回调1
-    manager.triggerCallbacks(std::string("Hello, world!"));          // 触发回调2
-    manager.triggerCallbacks(7, std::string("Multiple parameters")); // 触发回调3
+    manager.triggerCallbacks(1, 22, 32.0);                              // 触发回调1
+    manager.triggerCallbacks(2, std::string("Hello, world!"));          // 触发回调2
+    manager.triggerCallbacks(3, 7, std::string("Multiple parameters")); // 触发回调3
 
     std::cout << "===================================================" << std::endl;
-    manager.removeCallback(id1);
-    manager.printCallbacks();
+    manager.removeCallback(1, id1);
+    // manager.printCallbacks();
 
     std::cout << "===================================================" << std::endl;
-    manager.triggerCallbacks(22, 32.0);                              // 触发回调1
-    manager.triggerCallbacks(std::string("Hello, world!"));          // 触发回调2
-    manager.triggerCallbacks(7, std::string("Multiple parameters")); // 触发回调3
+    manager.triggerCallbacks(1, 22, 32.0);                              // 触发回调1
+    manager.triggerCallbacks(2, std::string("Hello, world!"));          // 触发回调2
+    manager.triggerCallbacks(3, 7, std::string("Multiple parameters")); // 触发回调3
 
     return 0;
 }

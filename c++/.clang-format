@@ -1,0 +1,59 @@
+BasedOnStyle: LLVM
+
+Language: Cpp
+
+#缩进宽度
+IndentWidth: 4
+
+# 使用C++风格的指针和引用.
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+#列宽
+#当列宽为0时表示无限制
+#列宽设置为120时会导制小函数括号缩进出错，列宽限制需自己注意！
+ColumnLimit: 0
+
+#所有大括号换行
+BreakBeforeBraces: Allman
+
+# 不允许使用tab字符
+UseTab: Never
+
+# 开括号后对齐
+AlignAfterOpenBracket: Align
+
+# 连续赋值时，对齐所有等号
+AlignConsecutiveAssignments: true
+
+# 连续声明时，对齐所有声明的变量名
+AlignConsecutiveDeclarations: true
+
+# 水平对齐操作符
+AlignOperands: true
+
+# 对齐连续的尾随注释
+AlignTrailingComments: true
+
+# 在构造函数的初始化列表的逗号前换行
+BreakConstructorInitializers: BeforeComma
+
+# 在继承类列表前用逗号换行
+BreakInheritanceList: BeforeComma
+
+# 构造函数的初始化列表的缩进宽度
+ConstructorInitializerIndentWidth: 4
+
+# 缩进所有namspace里的内容
+AccessModifierOffset: -4
+IndentAccessModifiers: false
+NamespaceIndentation: None
+
+# 使用空行来分隔开定义代码
+SeparateDefinitionBlocks: Always
+
+# 缩进switch里的case标签
+IndentCaseLabels: true
+
+# 不自动整理include
+SortIncludes: Never

@@ -70,31 +70,56 @@ private:
 class EventQueue
 {
 public:
+    EventQueue(size_t capacity = 1024)
+        : capacity_(capacity)
+        , head_(0)
+        , tail_(0)
+    {
+        buffer_ = new std::unique_ptr<IEventArg>[capacity_];
+    }
+
+    ~EventQueue()
+    {
+        delete[] buffer_;
+    }
+
     void push(std::unique_ptr<IEventArg> event)
     {
-        std::lock_guard<std::mutex> lock(queueMutex_);
-        eventQueue_.emplace(std::move(event));
-        cv_.notify_one();
+        size_t tail      = tail_.load(std::memory_order_relaxed);
+        size_t next_tail = (tail + 1) % capacity_;
+
+        // 等待直到队列有空位
+        while (next_tail == head_.load(std::memory_order_acquire))
+        {
+            // 可以选择使用std::this_thread::yield()来降低CPU负担
+            std::this_thread::yield();
+        }
+
+        buffer_[tail] = std::move(event);
+        tail_.store(next_tail, std::memory_order_release);
     }
 
     std::unique_ptr<IEventArg> pop()
     {
-        std::unique_lock<std::mutex> lock(queueMutex_);
-        cv_.wait(lock, [this]
-                 { return !eventQueue_.empty(); });
+        size_t head = head_.load(std::memory_order_relaxed);
 
-        auto event = std::move(eventQueue_.front());
-        eventQueue_.pop();
+        // 等待直到队列有数据
+        while (head == tail_.load(std::memory_order_acquire))
+        {
+            std::this_thread::yield();
+        }
+
+        auto event = std::move(buffer_[head]);
+        head_      = (head + 1) % capacity_;
 
         return event;
     }
 
 private:
-    std::queue<std::unique_ptr<IEventArg>> eventQueue_;
-
-    std::mutex queueMutex_;
-
-    std::condition_variable cv_;
+    size_t                      capacity_;
+    std::unique_ptr<IEventArg>* buffer_;
+    std::atomic<size_t>         head_; // 队列头部的索引
+    std::atomic<size_t>         tail_; // 队列尾部的索引
 };
 
 // 定义回调函数的类型，回调函数可以接受任意数量的参数
@@ -111,7 +136,7 @@ public:
 
     void Print()
     {
-        for (const auto& callback : callbacks_)
+        for (const auto& callback : callback_map_)
         {
             std::cout << "Event Type: " << callback.first << std::endl;
             for (const auto& cb : callback.second)
@@ -124,7 +149,7 @@ public:
     template <typename... Arguments>
     int Add(int eventType, std::function<void(Arguments...)> callback)
     {
-        int callbackId = nextCallbackId_++;
+        int callbackId = ++nextCallbackId_;
 
         EventCallback wrappedCallback = [callback](const IEventArg& e)
         {
@@ -140,14 +165,14 @@ public:
             }
         };
 
-        callbacks_[eventType].emplace_back(callbackId, wrappedCallback);
+        callback_map_[eventType].emplace_back(callbackId, wrappedCallback);
 
         return callbackId;
     }
 
     void Remove(int eventType, int id)
     {
-        auto& vec = callbacks_[eventType];
+        auto& vec = callback_map_[eventType];
         auto  it  = std::find_if(vec.begin(), vec.end(), [id](const auto& callback)
                                  { return callback.first == id; });
 
@@ -162,13 +187,13 @@ public:
 
     inline std::vector<std::pair<int, EventCallback>>& Get(int eventType)
     {
-        return callbacks_[eventType];
+        return callback_map_[eventType];
     }
 
 private:
     int nextCallbackId_;
 
-    std::unordered_map<int, std::vector<std::pair<int, EventCallback>>> callbacks_;
+    std::unordered_map<int, std::vector<std::pair<int, EventCallback>>> callback_map_;
 };
 
 class EventManager

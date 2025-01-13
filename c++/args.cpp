@@ -3,31 +3,13 @@
 #include <functional>
 #include <iostream>
 #include <memory>
-#include <mutex>
 #include <queue>
+#include <shared_mutex>
 #include <string>
 #include <thread>
 #include <tuple>
 #include <unordered_map>
 #include <vector>
-
-// 一个示例回调函数，接收一个整数
-void callback1(int a, double b)
-{
-    std::cout << "Callback 1, received: " << a << " and " << b << std::endl;
-}
-
-// 一个示例回调函数，接收一个字符串
-void callback2(const std::string& str)
-{
-    std::cout << "Callback 2, received: " << str << std::endl;
-}
-
-// 一个示例回调函数，接收一个整数和一个字符串
-void callback3(int a, const std::string str)
-{
-    std::cout << "Callback 3, received: " << a << " and " << str << std::endl;
-}
 
 // 基础事件类
 class IEventArg
@@ -125,6 +107,23 @@ private:
 // 定义回调函数的类型，回调函数可以接受任意数量的参数
 using EventCallback = std::function<void(const IEventArg&)>;
 
+struct CallbackInfo
+{
+    int id;
+
+    bool isOnce = false;
+
+    void* data;
+
+    EventCallback Execute;
+
+    // 用于标识回调函数的唯一hash
+    int callbackPtr;
+};
+
+// template <typename... Arguments>
+// typedef void (*EventCallback)(const Arguments...);
+
 class CallbackManager
 {
 
@@ -136,12 +135,13 @@ public:
 
     void Print()
     {
+        // std::lock_guard<std::mutex> lock(mutex_);
         for (const auto& callback : callback_map_)
         {
             std::cout << "Event Type: " << callback.first << std::endl;
             for (const auto& cb : callback.second)
             {
-                std::cout << "Callback ID: " << cb.first << std::endl;
+                std::cout << "Callback ID: " << cb.id << std::endl;
             }
         }
     }
@@ -149,14 +149,17 @@ public:
     template <typename... Arguments>
     int Add(int eventType, std::function<void(Arguments...)> callback)
     {
+        std::unique_lock<std::shared_mutex> lock(mutex_);
+
         int callbackId = ++nextCallbackId_;
+
+        // void (*const* callbackTarget)(Arguments...) = callback.target<std::function<void(Arguments...)>>();
 
         EventCallback wrappedCallback = [callback](const IEventArg& e)
         {
             const auto* event = dynamic_cast<const EventArg<Arguments...>*>(&e);
             if (event)
             {
-                // std::apply(callback, event->Args());
                 callback(std::get<Arguments>(event->Args())...);
             }
             else
@@ -165,16 +168,20 @@ public:
             }
         };
 
-        callback_map_[eventType].emplace_back(callbackId, wrappedCallback);
+        CallbackInfo info{callbackId, false, nullptr, wrappedCallback, 0};
+
+        callback_map_[eventType].emplace_back(info);
 
         return callbackId;
     }
 
     void Remove(int eventType, int id)
     {
+        std::unique_lock<std::shared_mutex> lock(mutex_);
+
         auto& vec = callback_map_[eventType];
         auto  it  = std::find_if(vec.begin(), vec.end(), [id](const auto& callback)
-                                 { return callback.first == id; });
+                                 { return callback.id == id; });
 
         if (it != vec.end())
         {
@@ -185,15 +192,18 @@ public:
         Print();
     }
 
-    inline std::vector<std::pair<int, EventCallback>>& Get(int eventType)
+    inline std::vector<CallbackInfo>& Get(int eventType)
     {
+        std::shared_lock<std::shared_mutex> lock(mutex_);
         return callback_map_[eventType];
     }
 
 private:
-    int nextCallbackId_;
+    std::atomic<int> nextCallbackId_;
 
-    std::unordered_map<int, std::vector<std::pair<int, EventCallback>>> callback_map_;
+    std::unordered_map<int, std::vector<CallbackInfo>> callback_map_;
+
+    std::shared_mutex mutex_;
 };
 
 class EventManager
@@ -225,7 +235,7 @@ public:
 
     // 触发所有回调函数，传入参数包
     template <typename... Arguments>
-    void triggerCallbacks(int eventType, bool async, Arguments&&... args)
+    void triggerCallbacks(int eventType, bool async = false, Arguments&&... args)
     {
         auto callbackArr = callbackManager_.Get(eventType);
 
@@ -245,7 +255,7 @@ public:
             // 如果是同步，直接触发回调
             for (const auto& callback : callbackArr)
             {
-                callback.second(*event);
+                callback.Execute(*event);
             }
         }
     }
@@ -306,11 +316,11 @@ protected:
             {
                 try
                 {
-                    callback.second(*event);
+                    callback.Execute(*event);
                 }
                 catch (const std::exception& e)
                 {
-                    std::cerr << "Exception occurred while executing callback ID " << callback.first << ": " << e.what() << std::endl;
+                    std::cerr << "Exception occurred while executing callback ID " << callback.id << ": " << e.what() << std::endl;
                 }
                 catch (...)
                 {
@@ -336,18 +346,64 @@ private:
     EventQueue eventQueue_;
 };
 
+// 一个示例回调函数，接收一个整数
+void callback1(int a, double b)
+{
+    std::cout << "Callback 1, received: " << a << " and " << b << std::endl;
+}
+
+// 一个示例回调函数，接收一个字符串
+void callback2(const std::string& str)
+{
+    std::cout << "Callback 2, received: " << str << std::endl;
+}
+
+void callback4(const std::string& str)
+{
+    std::cout << "Callback 4, received: " << str << std::endl;
+}
+
+// 一个示例回调函数，接收一个整数和一个字符串
+void callback3(int a, const std::string str)
+{
+    std::cout << "Callback 3, received: " << a << " and " << str << std::endl;
+}
+
+void callback5(void* a, double b)
+{
+    std::cout << "Callback 5, received: " << *static_cast<int*>(a) << " and " << b << std::endl;
+}
+
+void callback6()
+{
+    std::cout << "Callback 6 " << std::endl;
+}
+
 int main()
 
 {
     EventManager manager;
 
     // 使用std::function将普通的回调函数传递给addCallback
-    auto c1  = std::function<void(int, double)>(callback1);
-    auto c2  = std::function<void(const std::string)>(callback2);
-    auto c3  = std::function<void(int, const std::string)>(callback3);
+    auto c1 = std::function<void(int, double)>(callback1);
+    auto c2 = std::function<void(const std::string)>(callback2);
+    auto c3 = std::function<void(int, const std::string)>(callback3);
+    auto c4 = std::function<void(const std::string)>(callback4);
+
+    int a = 20;
+
+    int* b = &a;
+
+    std::function<void(double)> c5(std::bind(callback5, b, std::placeholders::_1));
+
+    std::function<void()> c6(callback6);
+
     auto id1 = manager.addCallback(1, c1); // 注册接收一个整数的回调函数
     auto id2 = manager.addCallback(2, c2); // 注册接收一个字符串的回调函数
     auto id3 = manager.addCallback(3, c3); // 注册接收一个整数和一个字符串的回调函数
+    auto id4 = manager.addCallback(2, c4); // 注册接收一个整数和一个字符串的回调函数
+    auto id5 = manager.addCallback(5, c5); // 注册接收一个整数和一个字符串的回调函数
+    auto id6 = manager.addCallback(6, c6); // 注册接收一个整数和一个字符串的回调函数
 
     std::cout << "===================================================" << std::endl;
     std::cout << "id1:" << id1 << std::endl;
@@ -360,6 +416,9 @@ int main()
     manager.triggerCallbacks(2, true, std::string("Hello, world!"));          // 触发回调2（异步）
     manager.triggerCallbacks(3, true, 7, std::string("Multiple parameters")); // 触发回调3（异步）
 
+    manager.triggerCallbacks(6, false);
+    manager.triggerCallbacks(6);
+
     std::this_thread::sleep_for(std::chrono::seconds(1)); // 等待异步回调执行
 
     std::cout << "===================================================" << std::endl;
@@ -369,6 +428,7 @@ int main()
     manager.triggerCallbacks(1, true, 22, 32.0);                               // 触发回调1（异步）已删除
     manager.triggerCallbacks(2, false, std::string("Hello, world!"));          // 触发回调2（同步）
     manager.triggerCallbacks(3, false, 7, std::string("Multiple parameters")); // 触发回调3（同步）
+    manager.triggerCallbacks(5, false, 32.0);                                  // 触发回调3（同步）
 
     // 等待异步线程完成
     // asyncThread.join();

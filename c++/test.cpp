@@ -5,6 +5,26 @@
 #include <tuple>
 #include <vector>
 
+class A
+{
+public:
+    A()
+    {
+        a = new int;
+        a = 10;
+        std::function<void(void*,int, int)> f = std::bind(&A::func,this, a, std::repleacehold::_1, std::repleacehold::_2);
+        xxx.add(1, f);
+    }
+
+    void func(void* data, int i, int j)
+    {
+
+    }
+
+    int * a = nullptr;
+};
+
+xxx.triggerCallbacks(1, 50,50);
 // 一个示例回调函数，接收一个整数
 void callback1(int a, double b)
 {

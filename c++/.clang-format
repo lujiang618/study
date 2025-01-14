@@ -17,6 +17,10 @@ ColumnLimit: 0
 #所有大括号换行
 BreakBeforeBraces: Allman
 
+LambdaBodyIndentation: OuterScope
+
+AllowShortLambdasOnASingleLine: true
+
 # 不允许使用tab字符
 UseTab: Never
 

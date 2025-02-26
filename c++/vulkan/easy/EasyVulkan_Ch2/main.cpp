@@ -65,7 +65,7 @@ int main()
     commandPool   commandPool(graphicsBase::Base().QueueFamilyIndex_Graphics(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
     commandPool.AllocateBuffers(commandBuffer);
 
-    VkClearValue clearColor = {.color = {1.f, 0.f, 0.f, 1.f}};
+    VkClearValue clearColor = {.color = {1.f, 0.6f, 0.6f, 1.f}};
 
     while (!glfwWindowShouldClose(pWindow))
     {

@@ -756,6 +756,8 @@ public:
     //                    Create Logical Device
     void AddDeviceExtension(const char* extensionName)
     {
+        std::cout << "used device ext: " << extensionName << std::endl;
+
         AddLayerOrExtension(deviceExtensions, extensionName);
     }
 
@@ -965,7 +967,7 @@ public:
         for (const auto& surfaceFormat : availableSurfaceFormats) {
             std::cout << "Supported format: " << surfaceFormat.format << ", color space: " << surfaceFormat.colorSpace << std::endl;
         }
-        
+
         if (result)
             outStream << "[ graphicsBase ] ERROR Failed to get surface formats!Error code:" << int32_t(result) << std::endl;
         return result;

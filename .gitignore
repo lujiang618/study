@@ -4,3 +4,5 @@ micro/config/nacos/log
 node_modules
 
 .vscode
+
+test

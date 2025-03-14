@@ -1,107 +1,54 @@
 #pragma once
 
-#include <iostream>
 #include <unordered_map>
 #include <vector>
+#include <set>
 #include <cmath>
+#include <iostream>
 #include <algorithm>
 
-// 网格单元（Cell）的键类型
-struct GridKey
-{
-    int x, y, z;
+#include "Frustum2D.h"
 
-    bool operator==(const GridKey& other) const
-    {
-        return x == other.x && y == other.y && z == other.z;
-    }
-};
-
-// 自定义哈希函数（用于存储 GridKey）
-struct GridKeyHash
-{
-    std::size_t operator()(const GridKey& key) const
-    {
-        return std::hash<int>()(key.x) ^ std::hash<int>()(key.y) ^ std::hash<int>()(key.z);
-    }
-};
-
-// 3D 物体结构
+// 代表游戏中的对象
 struct Object
 {
-    int   id;      // 物体 ID
-    float x, y, z; // 物体位置
+    int  id;
+    Vec2 position;
+
+    Object(int id, Vec2 pos)
+        : id(id)
+        , position(pos)
+    {
+    }
 };
 
-// 网格（Grid）类
-class Grid
+class AOIGrid
 {
-private:
-    float                                                          cellSize; // 网格单元大小
-    std::unordered_map<GridKey, std::vector<Object*>, GridKeyHash> cells;    // 存储对象
-
-    // 计算对象所在的 GridKey
-    GridKey getGridKey(float x, float y, float z) const
-    {
-        return {static_cast<int>(std::floor(x / cellSize)),
-                static_cast<int>(std::floor(y / cellSize)),
-                static_cast<int>(std::floor(z / cellSize))};
-    }
-
 public:
-    Grid(float size)
-        : cellSize(size)
-    {
-    }
+    AOIGrid(float gridSize);
+    void AddObject(Object* obj);
 
-    // 插入对象
-    void insertObject(Object* obj)
-    {
-        GridKey key = getGridKey(obj->x, obj->y, obj->z);
-        cells[key].push_back(obj);
-    }
+    void RemoveObject(Object* obj);
 
-    // 查询对象所在的 Cell
-    std::vector<Object*> queryObjects(float x, float y, float z)
-    {
-        GridKey key = getGridKey(x, y, z);
-        if (cells.find(key) != cells.end())
-        {
-            return cells[key];
-        }
-        return {};
-    }
+    void MoveObject(Object* obj, Vec2 newPos);
 
-    // 查询邻近 Cell 中的对象（8 邻域搜索）
-    std::vector<Object*> queryNeighbors(float x, float y, float z)
-    {
-        std::vector<Object*> result;
-        GridKey              key = getGridKey(x, y, z);
+    std::set<Object*> GetNearbyObjects(Object* obj, int range);
 
-        for (int dx = -1; dx <= 1; dx++)
-        {
-            for (int dy = -1; dy <= 1; dy++)
-            {
-                for (int dz = -1; dz <= 1; dz++)
-                {
-                    GridKey neighborKey = {key.x + dx, key.y + dy, key.z + dz};
-                    if (cells.find(neighborKey) != cells.end())
-                    {
-                        result.insert(result.end(), cells[neighborKey].begin(), cells[neighborKey].end());
-                    }
-                }
-            }
-        }
-        return result;
-    }
+    std::vector<Vec2> GetVisibleGrids(const Frustum& frustum);
 
-    // 移除对象
-    void removeObject(Object* obj)
-    {
-        GridKey key  = getGridKey(obj->x, obj->y, obj->z);
+    std::vector<Vec2> GetAllVisibleCells(const Frustum& frustum);
 
-        auto&   cell = cells[key];
+    std::set<Object*> GetObjectsInFrustum(const Frustum2D& frustum);
 
-        cell.erase(std::remove(cell.begin(), cell.end(), obj), cell.end());
-    }
+    Vec2 CellToWorld(const Vec2& cell) const;
+
+    std::vector<Vec2> GetVisibleCells(const Frustum2D& frustum);
+
+    void PrintVisibleCells(const Frustum2D& frustum);
+
+    Vec2 GetCell(Vec2 pos);
+
+private:
+    float                                          gridSize_;
+    std::unordered_map<Vec2, std::vector<Object*>> grid_;
 };

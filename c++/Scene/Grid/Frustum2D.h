@@ -28,7 +28,10 @@ public:
 
 private:
     Vec2 nearLeft;  // 近平面左上角，右上角
+
     Vec2 nearRight; // 近平面左上角，右上角
+
     Vec2 farLeft;   // 远平面左下角，右下角
+    
     Vec2 farRight;  // 远平面左下角，右下角
 };

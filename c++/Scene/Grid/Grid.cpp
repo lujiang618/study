@@ -15,19 +15,71 @@ Vec2 AOIGrid::GetCell(Vec2 pos)
     return Vec2(std::floor(pos.x / gridSize_), std::floor(pos.y / gridSize_));
 }
 
+Vec2 AOIGrid::GetMaxCell(Vec2 pos)
+{
+    return Vec2(std::ceil(pos.x / gridSize_) - 1, std::ceil(pos.y / gridSize_) - 1);
+}
+
+Vec2 AOIGrid::CellToWorld(const Vec2& cell) const
+{
+    return Vec2(cell.x * gridSize_, cell.y * gridSize_);
+}
+
 // 添加对象到 AOI 网格
 void AOIGrid::AddObject(Object* obj)
 {
-    Vec2 cell = GetCell(obj->position);
-    grid_[cell].push_back(obj);
+    Vec2 cellMin = GetCell(obj->box.min);
+    Vec2 cellMax = GetMaxCell(obj->box.max);
+
+    // std::cout << "obj: " << obj->id << " x:" << obj->position.x << " y:" << obj->position.y << std::endl;
+    // std::cout << "cellMin: " << cellMin.x << ", " << cellMin.y << std::endl;
+    // std::cout << "cellMax: " << cellMax.x << ", " << cellMax.y << std::endl;
+    for (int x = cellMin.x; x <= cellMax.x; ++x)
+    {
+        for (int y = cellMin.y; y <= cellMax.y; ++y)
+        {
+            grid_[Vec2(x, y)].push_back(obj);
+        }
+    }
+}
+
+std::vector<Object*> AOIGrid::GetObjects(Vec2 cell)
+{
+    return grid_[cell];
 }
 
 // 从 AOI 网格中移除对象
 void AOIGrid::RemoveObject(Object* obj)
 {
-    Vec2  cell    = GetCell(obj->position);
-    auto& objects = grid_[cell];
-    objects.erase(std::remove(objects.begin(), objects.end(), obj), objects.end());
+    Vec2 cellMin = GetCell(obj->box.min);
+    Vec2 cellMax = GetMaxCell(obj->box.max);
+
+    for (int x = cellMin.x; x <= cellMax.x; ++x)
+    {
+        for (int y = cellMin.y; y <= cellMax.y; ++y)
+        {
+            auto& objects = grid_[Vec2(x, y)];
+            objects.erase(std::remove(objects.begin(), objects.end(), obj), objects.end());
+        }
+    }
+}
+
+std::vector<Vec2> AOIGrid::GetObjectCell(Object* obj)
+{
+
+    Vec2 cellMin = GetCell(obj->box.min);
+    Vec2 cellMax = GetMaxCell(obj->box.max);
+
+    std::vector<Vec2> result;
+    for (int x = cellMin.x; x <= cellMax.x; ++x)
+    {
+        for (int y = cellMin.y; y <= cellMax.y; ++y)
+        {
+            result.push_back(Vec2(x, y));
+        }
+    }
+
+    return result;
 }
 
 // 更新对象位置（移动）
@@ -118,11 +170,6 @@ std::vector<Vec2> AOIGrid::GetAllVisibleCells(const Frustum& frustum)
     return visibleCells;
 }
 
-Vec2 AOIGrid::CellToWorld(const Vec2& cell) const
-{
-    return Vec2(cell.x * gridSize_, cell.y * gridSize_);
-}
-
 std::vector<Vec2> AOIGrid::GetVisibleCells(const Frustum2D& frustum)
 {
     std::vector<Vec2> visibleCells;
@@ -172,5 +219,23 @@ void AOIGrid::PrintVisibleCells(const Frustum2D& frustum)
     for (auto& cell : cells)
     {
         std::cout << "cell:" << cell << std::endl;
+    }
+}
+
+void AOIGrid::Print()
+{
+    std::cout << "**********************************************************************" << std::endl;
+    std::cout << "共有cell:" << grid_.size() << std::endl;
+
+    for (auto& [cell, objects] : grid_)
+    {
+        std::cout << "cell:" << cell << std::endl;
+        std::cout << "objects:" << objects.size() << std::endl;
+        for (auto& obj : objects)
+        {
+            std::cout << "obj:" << obj->id << " position:" << obj->position << " box: " << obj->box.min << obj->box.max << std::endl;
+        }
+
+        std::cout << "**********************************************************************" << std::endl;
     }
 }

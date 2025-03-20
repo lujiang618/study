@@ -1,53 +1,39 @@
 #include <iostream>
 
-#include "Tree.h"
+#include "Qctree.h"
 
 int main()
 {
-    // 定义场景的边界
-    AABB sceneBounds{0, 0, 0, 100, 100, 100};
-
-    // 全局容器存储对象的包围盒
-    std::unordered_map<int, AABB> globalObjectBounds;
-
-    // 创建八叉树
-    Octree octree(sceneBounds, 5, 10, globalObjectBounds);
+    // 创建线性八叉树，尺寸为 1024，最大深度为 4，节点最大存储数量为 2，源点为 (0, 0, 0)
+    Qctree octree(1024, 4, 2);
 
     // 插入对象
-    for (int i = 0; i < 20; ++i)
+    octree.insert({1, {100, 200, 300}});
+    octree.insert({2, {150, 250, 350}});
+    octree.insert({3, {120, 220, 320}});
+
+    // 查询对象
+    auto result = octree.query({120, 220, 320}, 50);
+    for (const Object& object : result)
     {
-        AABB objectBounds{float(i * 5), float(i * 5), float(i * 5), float(i * 5 + 5), float(i * 5 + 5), float(i * 5 + 5)};
-        globalObjectBounds[i] = objectBounds; // 存储包围盒
-        octree.insert(i);                     // 插入对象
+        std::cout << "Found object: ID = " << object.id << ", Position: ("
+                  << object.position.x << ", " << object.position.y << ", " << object.position.z << ")" << std::endl;
     }
 
-    // 打印所有对象的包围盒
-    std::cout << "Object bounds:\n";
-    for (const auto& [id, bounds] : globalObjectBounds)
-    {
-        std::cout << "Object " << id << ": (" << bounds.minX << ", " << bounds.minY << ", " << bounds.minZ << ") - ("
-                  << bounds.maxX << ", " << bounds.maxY << ", " << bounds.maxZ << ")\n";
-    }
+    // 打印所有叶子节点的编码和对象
+    octree.printLeafNodes();
 
-    // 查询与范围相交的对象
-    AABB queryRange{10, 10, 10, 50, 50, 50};
-    auto result = octree.query(queryRange);
-    std::cout << "Objects in range: ";
-    for (int id : result)
+    // 通过二进制编码获取叶子节点
+    OctreeNode* leafNode = octree.locateLeafNode("0000");
+    if (leafNode)
     {
-        std::cout << id << " ";
+        std::cout << "Located leaf node: " << leafNode->getCode() << std::endl;
+        for (const Object& object : leafNode->getObjects())
+        {
+            std::cout << "  Object ID: " << object.id << ", Position: ("
+                      << object.position.x << ", " << object.position.y << ", " << object.position.z << ")" << std::endl;
+        }
     }
-    std::cout << std::endl;
-
-    // 检测碰撞
-    int  targetObjectId = 5;
-    auto collisions     = octree.detectCollisions(targetObjectId);
-    std::cout << "Collisions with object " << targetObjectId << ": ";
-    for (int id : collisions)
-    {
-        std::cout << id << " ";
-    }
-    std::cout << std::endl;
 
     return 0;
 }

@@ -24,7 +24,6 @@ public:
     int * a = nullptr;
 };
 
-xxx.triggerCallbacks(1, 50,50);
 // 一个示例回调函数，接收一个整数
 void callback1(int a, double b)
 {

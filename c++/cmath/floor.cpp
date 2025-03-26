@@ -9,5 +9,12 @@ int main() {
     std::cout << a / s << std::endl;
     std::cout << std::floor(a / s)<< std::endl;
 
+
+    int b = 32;
+    int c = 10;
+
+    std::cout << b / c << std::endl;
+    std::cout << std::floor(b / c)<< std::endl;
+
     return 0;
 }

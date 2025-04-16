@@ -11,9 +11,6 @@ public:
     A()
     {
         a = new int;
-        a = 10;
-        std::function<void(void*,int, int)> f = std::bind(&A::func,this, a, std::repleacehold::_1, std::repleacehold::_2);
-        xxx.add(1, f);
     }
 
     void func(void* data, int i, int j)

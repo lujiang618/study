@@ -1,0 +1,21 @@
+#include <vector>
+#include <iostream>
+
+int main() {
+    std::vector<uint8_t> vec;
+
+    // 预分配100个int的空间
+    vec.reserve(100);
+
+    std::cout << "容量: " << vec.capacity() << std::endl;  // 输出: 100
+    std::cout << "大小: " << vec.size() << std::endl;      // 输出: 0
+
+    // 添加元素不会触发重分配
+    for (int i = 0; i < 100; ++i) {
+        vec.push_back(i);
+    }
+
+    uint8_t* a =  vec.data();
+
+    return 0;
+}

@@ -1,24 +1,12 @@
 #include <iostream>
-#include <array>
+#include <cmath>
 #include <string>
 
 int main()
 {
-    std::array<std::string, 3> arr = {"Hello", "World", "!"};
 
-    for (auto& str : arr)
-    {
-        std::cout << str << " "<< std::endl;
+    float x= -180;
 
-        str = "a new string";
-    }
-
-    std::cout << "============================================" << std::endl;
-
-    for (auto& str : arr)
-    {
-        std::cout << str << " " << std::endl;
-    }
-
+    printf("x = %f\n", std::floor(x / 100));
     return 0;
 }

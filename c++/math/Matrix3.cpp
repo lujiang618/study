@@ -246,10 +246,6 @@ Matrix3& Matrix3::MakeRotation(float angle)
     return *this;
 }
 
-Matrix3& Matrix3::Mul(const Vector3 v) {
-
-}
-
 
 
 Matrix3& Matrix3::MakeScale(const Vector2& v)

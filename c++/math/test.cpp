@@ -32,7 +32,7 @@ int main()
 
     Vector2 point1Toworld = toCellCoordinate(point1ToScale, matrix.Invert());
 
-    printf("%f,%f,%f\n", point1Toworld.x, point1Toworld.y);
+    printf("%f,%f\n", point1Toworld.x, point1Toworld.y);
 
     return 0;
 }

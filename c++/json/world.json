@@ -1,0 +1,27 @@
+{
+  "type": 1,
+  "name": "world",
+  "boundingBox": {
+    "min": {
+      "x": -1,
+      "y": -1,
+      "z": -1
+    },
+    "max": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+    }
+  },
+  "assets": [
+    {
+      "name": "cube",
+      "path": "cube.json",
+      "position": [0, 0, 0]
+    }
+  ],
+  "octreeMaxDepth": 4,
+  "camera": {
+    "position": [0, 0, 0]
+  }
+}

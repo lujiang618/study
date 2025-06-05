@@ -41,16 +41,16 @@ int main()
 {
     // 示例：透视投影相机
 
-    auto eye    = glm::vec3(0, 0, 5);
+    auto eye    = glm::vec3(89, -120, 71);
     auto center = glm::vec3(0, 0, 0);
-    auto up     = glm::vec3(0, 1, 0);
+    auto up     = glm::vec3(0, 0, 1);
 
     glm::mat4 view = glm::lookAt(eye, center, up);
 
     auto  fov    = glm::radians(60.0f);
-    float aspect = 16.0f / 9.0f;
-    float near   = 0.1f;
-    float far    = 100.0f;
+    float aspect = 1280.0f / 720.0f;
+    float near   = 0.01f;
+    float far    = 1000.0f;
 
     glm::mat4 projection = glm::perspective(fov, aspect, near, far);
 

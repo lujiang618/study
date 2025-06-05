@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+    <script type="text/javascript" src="export.js"></script>
+</head>
+
+<!-- Let canvas auto fill the window -->
+<style>
+    #canvas {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    margin: 0px;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: block;
+}
+</style>
+
+<body>
+
+    <!-- Create the canvas that the C++ code will draw into -->
+    <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+
+    <!-- Allow the C++ to access the canvas element -->
+    <script type='text/javascript'>
+        var Module = {
+            canvas: (function() { return document.getElementById('canvas'); })()
+        };
+
+        createMyModule(Module).then(Module => {
+            console.log("---------------- int test ---------------")
+            var a = 1;
+            var b = 2;
+            var c = 3;
+
+            console.log('js TestInt input: ' + a)
+            Module._TestInt(1);
+            console.log('')
+
+            console.log('js TestInt2 input: ' + a + ' ' + b)
+            Module._TestInt2(1, 2);
+            console.log('')
+
+            console.log('js TestInt3 input: ' + a + ' ' + b + ' ' + c)
+            Module._TestInt3(1, 2, 3);
+            console.log('')
+
+            console.log('js TestInt4 input: ' + a + ' ' + b + ' ' + c)
+            Module._TestInt4(1, 2, 3);
+            console.log('')
+
+            var int_result = Module._TestReturnInt(b, c);
+            console.log('js TestReturnInt get: ' + int_result);
+            console.log('')
+
+
+            console.log("---------------- float test ---------------")
+            var f_a = 1.1;
+            var f_b = 2.2;
+            var f_c = 3.3;
+
+            console.log('js TestFloat input: ' + f_a)
+            Module._TestFloat(f_a);
+            console.log('')
+
+            console.log('js _TestFloat2 input: ' + f_a + ' ' + f_b)
+            Module._TestFloat2(f_a, f_b);
+            console.log('')
+
+            console.log('js TestFloat3 input: ' + f_a + ' ' + f_b + ' ' + f_c)
+            Module._TestFloat3(f_a, f_b, f_c);
+            console.log('')
+
+            var float_result = Module._TestReturnFloat(f_b, f_c);
+            console.log('js TestReturnFloat get: ' + float_result);
+            console.log('')
+
+
+            console.log("---------------- int/float test ---------------")
+            var i_a = 1;
+            var i_f_b = 2.2;
+            var i_f_c = 3.3;
+            var i_f_d = 4.4;
+
+            console.log('js TestIntFloat input: ' + i_a + ' ' + i_f_b)
+            Module._TestIntFloat(i_a, i_f_b);
+            console.log('')
+
+            console.log('js TestIntFloat2 input: ' + i_a + ' ' + i_f_b + ' ' + i_f_c)
+            Module._TestIntFloat2(i_a, i_f_b, i_f_c);
+            console.log('')
+
+            console.log('js TestIntFloat3 input: ' + i_a + ' ' + i_f_b + ' ' + i_f_c + ' ' + i_f_d)
+            Module._TestIntFloat3(i_a, i_f_b, i_f_c, i_f_d);
+            console.log('')
+
+
+            console.log("---------------- string test ---------------")
+            var str_a = 'hello';
+            var str_b = 'world';
+            var str_c = '!';
+
+            console.log('js TestString input: ' + str_a)
+            Module._TestString(Module.stringToNewUTF8(str_a));
+            console.log('')
+
+            console.log('js TestString2 input: ' + str_a + ' ' + str_b)
+            Module._TestString2(Module.stringToNewUTF8(str_a), Module.stringToNewUTF8(str_b));
+            console.log('')
+
+            console.log('js TestString3 input: ' + str_a + ' ' + str_b + ' ' + str_c)
+            Module._TestString3(Module.stringToNewUTF8(str_a), Module.stringToNewUTF8(str_b), Module.stringToNewUTF8(str_c));
+            console.log('')
+
+            var string_result = Module._TestReturnString(Module.stringToNewUTF8(str_a), Module.stringToNewUTF8(str_b));
+            console.log('js TestReturnString get: ' + Module.UTF8ToString(string_result));
+            console.log('')
+
+
+            console.log("---------------- struct test ---------------")
+            var my_struct = {x:1, y:2.2, name:'MyStruct'};
+            var my_struct2 = {x:3, y:6.6, name:'MyStruct2'};
+
+
+            console.log('js TestStruct input: ' + my_struct.x + ' ' + my_struct.y + ' ' + my_struct.name)
+            Module.TestStruct(my_struct);
+            console.log('')
+
+
+            console.log('js TestStruct2 input: ' + my_struct.x + ' ' + my_struct.y + ' ' + my_struct.name + ' -- ' + my_struct2.x + ' ' + my_struct2.y + ' ' + my_struct2.name)
+            Module.TestStruct2(my_struct, my_struct2);
+
+            var person = Module.FindPersonAtLocation([10.2, 156.5]);
+            console.log('Found someone! Their name is ' + person.name + ' and they are ' + person.age + ' years old');
+
+
+
+        })
+    </script>
+
+</body>
+
+</html>

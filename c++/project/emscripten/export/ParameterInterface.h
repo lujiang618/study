@@ -92,6 +92,8 @@ extern "C"
 
     void TestVector(std::vector<int>& a);
 
+    // void TestArray3(int a[3]);
+
     // struct
     void TestStruct(const MyStruct& st);
 

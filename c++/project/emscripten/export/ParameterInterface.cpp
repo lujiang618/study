@@ -193,6 +193,11 @@ void TestVector(std::vector<int>& a)
     std::cout << "C++ TestVector: " << a[0] << " " << a[1] << " " << a[2] << std::endl;
 }
 
+// void TestArray3(int a[3])
+// {
+//     std::cout << "C++ TestArray: " << a[0] << " " << a[1] << " " << a[2] << std::endl;
+// }
+
 // struct
 void TestStruct(const MyStruct& st)
 {
@@ -244,6 +249,7 @@ EMSCRIPTEN_BINDINGS(my_module)
     function("lerp", &lerp);
     function("TestArray", &TestArray);
     function("TestArray2", &TestArray2);
+    // function("TestArray3", &TestArray3);
     function("TestVector", &TestVector);
     // function("TestString4", &TestString4, return_value_policy::take_ownership());
 

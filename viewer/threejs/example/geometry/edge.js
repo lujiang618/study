@@ -26,8 +26,9 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-const geometry = new THREE.BoxGeometry(1, 1, 1);
-const wireframe = new THREE.WireframeGeometry(geometry);
+// const geometry = new THREE.BoxGeometry(100, 100, 100);
+const geometry = new THREE.ConeGeometry( 5, 20, 32 );
+const wireframe = new THREE.EdgesGeometry(geometry);
 const line = new THREE.LineSegments(wireframe);
 line.material.depthTest = false;
 line.material.opacity = 0.25;
@@ -35,7 +36,7 @@ line.material.transparent = true;
 line.material.color = new THREE.Color(0xfaaaaa);
 scene.add(line);
 
-camera.position.z = 5;
+camera.position.z = 50;
 
 function animate() {
     requestAnimationFrame(animate);

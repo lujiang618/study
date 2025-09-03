@@ -17,11 +17,10 @@ import (
 
 //export callOnMeGo
 func callOnMeGo(in int) int {
-	fmt.Printf("Go.callOnMeGo(): called with arg = %d\n", in)
+	fmt.Printf("go called with arg = %d\n", in)
 	return in + 1
 }
 
 func main() {
-	fmt.Printf("Go.main(): calling C function with callback to us\n")
-	C.some_c_func((C.callback_fcn)(unsafe.Pointer(C.callOnMeGo_cgo)))
+	C.ON((C.callback_fcn)(unsafe.Pointer(C.callOnMeGo_cgo)))
 }

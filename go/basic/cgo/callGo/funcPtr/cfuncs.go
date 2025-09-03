@@ -7,7 +7,7 @@ package main
 // The gateway function
 int callOnMeGo_cgo(int in)
 {
-    printf("C.callOnMeGo_cgo(): called with arg = %d\n", in);
+    printf("gateway: arg = %d\n", in);
     int callOnMeGo(int);
     return callOnMeGo(in);
 }

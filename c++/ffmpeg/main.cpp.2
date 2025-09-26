@@ -1,0 +1,292 @@
+// encode_vaapi.cpp
+// g++ encode_vaapi.cpp -o encode_vaapi `pkg-config --cflags --libs libavformat libavcodec libavutil libswscale` -std=c++11
+
+extern "C" {
+#include <libavformat/avformat.h>
+#include <libavcodec/avcodec.h>
+#include <libavutil/avutil.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/opt.h>
+#include <libavutil/hwcontext.h>
+#include <libavutil/hwcontext_vaapi.h>
+#include <libswscale/swscale.h>
+}
+#include <iostream>
+#include <string>
+#include <vector>
+#include <cstdio>
+
+static void err_report(int ret, const char *msg) {
+    if (ret < 0) {
+        char buf[256];
+        av_strerror(ret, buf, sizeof(buf));
+        std::cerr << msg << ": " << buf << "\n";
+    } else {
+        std::cerr << msg << "\n";
+    }
+}
+
+int main(int argc, char** argv) {
+    const int FIRST_INDEX = 1;
+    const int LAST_INDEX  = 20;
+    const char *IMAGE_FMT = "images/%d.jpg";
+    const char *OUT_FILE  = "output.mp4";
+    const char *VAAPI_DEVICE = "/dev/dri/renderD128"; // 修改为你的 renderD 设备如果不同
+
+    const int WIDTH  = 1280; // 输出分辨率（若需要保持图片原尺寸，可在读取后改成图片尺寸）
+    const int HEIGHT = 720;
+    const int FPS = 25;
+    const int BITRATE = 2000000; // 2 Mbps
+    const int GOP = 600;
+    const int QP = 30; // 目标质量（私有选项，视驱动而异）
+
+    av_log_set_level(AV_LOG_INFO);
+
+    int ret = 0;
+    AVBufferRef *hw_device_ctx = nullptr;
+
+    // 1) 创建 VAAPI 设备上下文
+    ret = av_hwdevice_ctx_create(&hw_device_ctx, AV_HWDEVICE_TYPE_VAAPI, NULL, NULL, 0);
+    if (ret < 0) {
+        err_report(ret, "Failed to create VAAPI device context (av_hwdevice_ctx_create). Check device path and drivers");
+        return 1;
+    }
+
+    // 2) 找到 encoder（h264_vaapi）
+    const AVCodec *encoder = avcodec_find_encoder_by_name("h264_vaapi");
+    if (!encoder) {
+        std::cerr << "h264_vaapi encoder not found in this FFmpeg build\n";
+        return 1;
+    }
+
+    // 3) 创建并配置编码器上下文
+    AVCodecContext *enc_ctx = avcodec_alloc_context3(encoder);
+    if (!enc_ctx) { std::cerr << "Failed to alloc encoder ctx\n"; return 1; }
+
+    enc_ctx->width  = WIDTH;
+    enc_ctx->height = HEIGHT;
+    enc_ctx->time_base = AVRational{1, FPS};
+    enc_ctx->framerate = AVRational{FPS,1};
+    enc_ctx->gop_size = GOP;
+    enc_ctx->max_b_frames = 0; // no B-frames
+    enc_ctx->pix_fmt = AV_PIX_FMT_VAAPI; // hardware frames
+    enc_ctx->bit_rate = BITRATE;
+
+    // 设置 hw device context 到 encoder
+    enc_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+
+    // 私有选项（尝试设置 qp=30）
+    if (enc_ctx->priv_data) {
+        // 设置 qp
+        av_opt_set_int(enc_ctx->priv_data, "qp", QP, 0);
+        // 常用 rc_mode 可能是 "cbr" 或 "vbr"，取决于驱动。这里不强制设置 rc_mode，主要依赖 bitrate。
+        // av_opt_set(enc_ctx->priv_data, "rc_mode", "cbr", 0);
+    }
+
+    enc_ctx->hw_frames_ctx = av_buffer_ref(frames_hw_ctx_ref);
+
+    // 打开编码器
+    ret = avcodec_open2(enc_ctx, encoder, NULL);
+    if (ret < 0) { err_report(ret, "Failed to open encoder"); return 1; }
+
+    // 4) 初始化输出容器并添加流
+    AVFormatContext *out_fmt_ctx = nullptr;
+    ret = avformat_alloc_output_context2(&out_fmt_ctx, NULL, NULL, OUT_FILE);
+    if (ret < 0 || !out_fmt_ctx) { err_report(ret, "Failed to alloc output context"); return 1; }
+
+    AVStream *out_stream = avformat_new_stream(out_fmt_ctx, NULL);
+    if (!out_stream) { std::cerr << "Failed to create output stream\n"; return 1; }
+
+    // 从编码器上下文拷贝参数到流
+    ret = avcodec_parameters_from_context(out_stream->codecpar, enc_ctx);
+    if (ret < 0) { err_report(ret, "Failed to copy codec params to stream"); return 1; }
+
+    out_stream->time_base = enc_ctx->time_base;
+
+    // 打开输出 IO
+    if (!(out_fmt_ctx->oformat->flags & AVFMT_NOFILE)) {
+        ret = avio_open(&out_fmt_ctx->pb, OUT_FILE, AVIO_FLAG_WRITE);
+        if (ret < 0) { err_report(ret, "Could not open output file"); return 1; }
+    }
+
+    // 写头
+    ret = avformat_write_header(out_fmt_ctx, NULL);
+    if (ret < 0) { err_report(ret, "Error occurred when writing header"); return 1; }
+
+    // 5) 创建一个用于将解码的图片（软件帧）转为 encoder 所需分辨率 & pixfmt (YUV420P)
+    SwsContext *sws_ctx = sws_getContext(
+        // source size/pixfmt will be known per image, we assume input->RGB or whatever -> YUV420P
+        WIDTH, HEIGHT, AV_PIX_FMT_RGB24, // placeholder, we'll re-init per image if needed
+        WIDTH, HEIGHT, AV_PIX_FMT_YUV420P,
+        SWS_BILINEAR, NULL, NULL, NULL
+    );
+    // We'll re-create sws_ctx per image if needed; for simplicity below we'll assume input decoded frames can be converted from their fmt->YUV420P via a proper sws_getContext.
+
+    // 6) 为 VAAPI 分配一个 hw_frames_ctx（用于获取 hw frames）
+    // 使用 av_hwframe_ctx_alloc 创建 frames context 基于 hw_device_ctx
+    AVBufferRef *frames_hw_ctx_ref = av_hwframe_ctx_alloc(hw_device_ctx);
+    if (!frames_hw_ctx_ref) { std::cerr << "Failed to allocate hwframe context\n"; return 1; }
+    AVHWFramesContext *frames_hw_ctx = (AVHWFramesContext*)(frames_hw_ctx_ref->data);
+    frames_hw_ctx->format = AV_PIX_FMT_VAAPI;
+    frames_hw_ctx->sw_format = AV_PIX_FMT_YUV420P; // sw format for transfers
+    frames_hw_ctx->width = WIDTH;
+    frames_hw_ctx->height = HEIGHT;
+    frames_hw_ctx->initial_pool_size = 20;
+
+    ret = av_hwframe_ctx_init(frames_hw_ctx_ref);
+    if (ret < 0) { err_report(ret, "Failed to initialize hw frame context"); av_buffer_unref(&frames_hw_ctx_ref); return 1; }
+
+    // 7) 循环读取图片，解码，转换为 YUV420P，然后上传到 hw frame，送 encoder
+    int64_t pts = 0;
+    for (int idx = FIRST_INDEX; idx <= LAST_INDEX; ++idx) {
+        char filename[512];
+        snprintf(filename, sizeof(filename), IMAGE_FMT, idx);
+        std::cout << "Processing " << filename << "\n";
+
+        // 打开图片文件作为输入并解码到 AVFrame（libavformat/libavcodec 支持直接打开 jpg）
+        AVFormatContext *fmt_ctx = NULL;
+        ret = avformat_open_input(&fmt_ctx, filename, NULL, NULL);
+        if (ret < 0) { err_report(ret, "Failed to open image file"); continue; }
+
+        ret = avformat_find_stream_info(fmt_ctx, NULL);
+        if (ret < 0) { err_report(ret, "Failed to find stream info in image"); avformat_close_input(&fmt_ctx); continue; }
+
+        const AVCodec *dec = NULL;
+        int stream_idx = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, &dec, 0);
+        if (stream_idx < 0) { std::cerr << "No video stream in " << filename << "\n"; avformat_close_input(&fmt_ctx); continue; }
+
+        AVCodecContext *dec_ctx = avcodec_alloc_context3(dec);
+        avcodec_parameters_to_context(dec_ctx, fmt_ctx->streams[stream_idx]->codecpar);
+        ret = avcodec_open2(dec_ctx, dec, NULL);
+        if (ret < 0) { err_report(ret, "Failed to open image decoder"); avcodec_free_context(&dec_ctx); avformat_close_input(&fmt_ctx); continue; }
+
+        AVPacket *pkt = av_packet_alloc();
+        AVFrame  *frame = av_frame_alloc();
+        AVFrame  *sw_frame = av_frame_alloc(); // will hold converted YUV420P
+        bool got_frame = false;
+
+        // read packets until get decoded frame
+        while (av_read_frame(fmt_ctx, pkt) >= 0) {
+            if (pkt->stream_index == stream_idx) {
+                ret = avcodec_send_packet(dec_ctx, pkt);
+                if (ret < 0) { err_report(ret, "Error sending packet to decoder"); }
+                while (ret >= 0) {
+                    ret = avcodec_receive_frame(dec_ctx, frame);
+                    if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) break;
+                    else if (ret < 0) { err_report(ret, "Error during decoding"); break; }
+
+                    // frame now contains decoded image; convert it to YUV420P and the desired size if needed.
+                    // Create sws context depending on input pixfmt and size
+                    SwsContext *sws = sws_getContext(
+                        frame->width, frame->height, (AVPixelFormat)frame->format,
+                        WIDTH, WIDTH?HEIGHT:frame->height, AV_PIX_FMT_YUV420P,
+                        SWS_BILINEAR, NULL, NULL, NULL
+                    );
+                    if (!sws) { std::cerr << "Failed to create sws context\n"; }
+                    // allocate sw_frame buffers
+                    sw_frame->format = AV_PIX_FMT_YUV420P;
+                    sw_frame->width = WIDTH;
+                    sw_frame->height = HEIGHT;
+                    av_frame_get_buffer(sw_frame, 32);
+                    // scale / convert
+                    sws_scale(sws, frame->data, frame->linesize, 0, frame->height, sw_frame->data, sw_frame->linesize);
+                    sws_freeContext(sws);
+
+                    got_frame = true;
+                    av_frame_unref(frame);
+                }
+            }
+            av_packet_unref(pkt);
+            if (got_frame) break;
+        }
+
+        av_packet_free(&pkt);
+        av_frame_free(&frame);
+        avcodec_free_context(&dec_ctx);
+        avformat_close_input(&fmt_ctx);
+
+        if (!got_frame) {
+            std::cerr << "Could not decode image " << filename << "\n";
+            av_frame_free(&sw_frame);
+            continue;
+        }
+
+        // 8) 从 sw_frame 上传到 hw frame（VAAPI surface）
+        AVFrame *hw_frame = av_frame_alloc();
+        hw_frame->format = AV_PIX_FMT_VAAPI;
+        hw_frame->width = WIDTH;
+        hw_frame->height = HEIGHT;
+
+        // 从 frames_hw_ctx_ref 获取一个 hw frame buffer
+        // av_hwframe_get_buffer 将分配缓冲并设置 hw_frame->data 等
+        ret = av_hwframe_get_buffer(frames_hw_ctx_ref, hw_frame, 0);
+        if (ret < 0) { err_report(ret, "av_hwframe_get_buffer failed"); av_frame_free(&sw_frame); av_frame_free(&hw_frame); continue; }
+
+        // 将 sw_frame 的像素上传到 hw_frame
+        ret = av_hwframe_transfer_data(hw_frame, sw_frame, 0);
+        if (ret < 0) { err_report(ret, "av_hwframe_transfer_data failed"); av_frame_free(&sw_frame); av_frame_free(&hw_frame); continue; }
+
+        // set pts
+        hw_frame->pts = pts++;
+        // 9) 发送到 encoder
+        ret = avcodec_send_frame(enc_ctx, hw_frame);
+        if (ret < 0) { err_report(ret, "Error sending frame to encoder"); av_frame_free(&sw_frame); av_frame_free(&hw_frame); continue; }
+
+        // 接收并写 packet（可能有多个）
+        AVPacket *out_pkt = av_packet_alloc();
+        while (true) {
+            ret = avcodec_receive_packet(enc_ctx, out_pkt);
+            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) break;
+            else if (ret < 0) { err_report(ret, "Error receiving packet from encoder"); break; }
+
+            // 复用器写入（注意时间基）
+            out_pkt->stream_index = out_stream->index;
+            // 将 packet 时间戳从编码器时间基 转换到流时间基（它们通常相同，这里仍做转换）
+            av_packet_rescale_ts(out_pkt, enc_ctx->time_base, out_stream->time_base);
+            ret = av_interleaved_write_frame(out_fmt_ctx, out_pkt);
+            if (ret < 0) { err_report(ret, "Error muxing packet"); }
+            av_packet_unref(out_pkt);
+        }
+        av_packet_free(&out_pkt);
+
+        // 释放 sw_frame 与 hw_frame
+        av_frame_free(&sw_frame);
+        av_frame_free(&hw_frame);
+
+        std::cout << "Frame " << idx << " encoded.\n";
+    }
+
+    // 10) flush encoder
+    ret = avcodec_send_frame(enc_ctx, NULL);
+    if (ret < 0) err_report(ret, "Error sending flush frame");
+
+    AVPacket *pkt_flush = av_packet_alloc();
+    while (true) {
+        ret = avcodec_receive_packet(enc_ctx, pkt_flush);
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) break;
+        else if (ret < 0) { err_report(ret, "Error during encoder flush"); break; }
+
+        pkt_flush->stream_index = out_stream->index;
+        av_packet_rescale_ts(pkt_flush, enc_ctx->time_base, out_stream->time_base);
+        ret = av_interleaved_write_frame(out_fmt_ctx, pkt_flush);
+        if (ret < 0) { err_report(ret, "Error muxing flush packet"); }
+        av_packet_unref(pkt_flush);
+    }
+    av_packet_free(&pkt_flush);
+
+    // 写文件尾
+    av_write_trailer(out_fmt_ctx);
+
+    // 释放资源
+    if (!(out_fmt_ctx->oformat->flags & AVFMT_NOFILE))
+        avio_closep(&out_fmt_ctx->pb);
+
+    avcodec_free_context(&enc_ctx);
+    avformat_free_context(out_fmt_ctx);
+    av_buffer_unref(&frames_hw_ctx_ref);
+    av_buffer_unref(&hw_device_ctx);
+    if (sws_ctx) sws_freeContext(sws_ctx);
+
+    std::cout << "Done. Output: " << OUT_FILE << "\n";
+    return 0;
+}

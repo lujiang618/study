@@ -56,7 +56,7 @@ int init_hw_frames_context(int width, int height)
 
     AVHWFramesContext* frames_ctx = (AVHWFramesContext*)hw_frames_ctx->data;
     frames_ctx->format            = AV_PIX_FMT_VAAPI;
-    frames_ctx->sw_format         = AV_PIX_FMT_NV12;
+    frames_ctx->sw_format         = AV_PIX_FMT_RGBA;
     frames_ctx->width             = width;
     frames_ctx->height            = height;
     frames_ctx->initial_pool_size = 20;
@@ -171,7 +171,7 @@ int init_output(const char* filename, int width, int height, int fps)
     video_stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
     video_stream->codecpar->width      = width;
     video_stream->codecpar->height     = height;
-    // video_stream->codecpar->format     = AV_PIX_FMT_VAAPI;
+    video_stream->codecpar->format     = AV_PIX_FMT_VAAPI;
     video_stream->time_base = {1, fps};
 
     // 打开输出文件

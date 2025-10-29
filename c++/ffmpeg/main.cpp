@@ -33,7 +33,7 @@ static AVBufferRef*     hw_frames_ctx = nullptr;
 // 初始化硬件设备
 int init_hw_device(AVHWDeviceType type)
 {
-    int ret = av_hwdevice_ctx_create(&hw_device_ctx, type, nullptr, nullptr, 0);
+    int ret = av_hwdevice_ctx_create(&hw_device_ctx, type, "/dev/dri/renderD128", nullptr, 0);
     if (ret < 0)
     {
         ERROR_BUF(ret);

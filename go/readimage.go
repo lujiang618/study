@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	file, err := os.Open("./4.jpg")
+	file, err := os.Open("./5.jpg")
 	if err != nil {
 		panic(err)
 	}

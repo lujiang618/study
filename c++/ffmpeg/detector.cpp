@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <chrono>
 
 using namespace std;
 
@@ -17,6 +18,8 @@ typedef int (*vaTerminate_t)(void*);
 typedef const char* (*vaErrorStr_t)(int);
 
 bool check_vaapi() {
+    auto start_time = chrono::high_resolution_clock::now();
+    
     // 1. 检查 VAAPI 设备
     if (!std::filesystem::exists("/dev/dri/renderD128")) {
         cerr << "VAAPI: /dev/dri/renderD128 不存在，可能没有 GPU 或驱动未加载。\n";
@@ -72,11 +75,18 @@ bool check_vaapi() {
     vaTerminate(va_dpy);
     close(drm_fd);
     dlclose(va_lib);
+    
+    auto end_time = chrono::high_resolution_clock::now();
+    auto duration = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    cout << "VAAPI 检查耗时: " << duration.count() << " 微秒\n";
+    
     return true;
 }
 
 
 bool check_vulkan_video() {
+    auto start_time = chrono::high_resolution_clock::now();
+    
      VkInstance instance;
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -123,11 +133,15 @@ bool check_vulkan_video() {
 
     if (hasVideo) {
         cout << "Vulkan Video: ✅ 支持视频扩展\n";
-        return true;
     } else {
         cout << "Vulkan Video: ❌ 未检测到视频扩展\n";
-        return false;
     }
+    
+    auto end_time = chrono::high_resolution_clock::now();
+    auto duration = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    cout << "Vulkan 检查耗时: " << duration.count() << " 微秒\n";
+    
+    return hasVideo;
 }
 
 int main() {

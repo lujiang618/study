@@ -9,3 +9,6 @@ lib
 include
 bin
 share
+
+*.h264
+./detector

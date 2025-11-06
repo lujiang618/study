@@ -17,6 +17,10 @@ add_executable(${PROJECT_NAME} WIN32 main.cpp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
+target_include_directories(${PROJECT_NAME} PRIVATE /home/dx/data/working/dev/sme/ThirdParty/libVA/include)
+
+target_link_directories(${PROJECT_NAME} PRIVATE /home/dx/data/working/dev/sme/ThirdParty/libVA/lib)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
      # 按依赖关系正确排序
     ${CMAKE_SOURCE_DIR}/lib/libavfilter.a

@@ -15,8 +15,8 @@ func align16(x int32) int32 {
 
 // go test align16_test.go -v
 func TestAlign16(t *testing.T) {
-	w := align(1864, 16)
-	h := align(932, 8)
+	w := align(1080, 16)
+	h := align(720, 8)
 
 	fmt.Printf("%d %d \n", w, h)
 }
